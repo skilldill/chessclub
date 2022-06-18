@@ -1,8 +1,10 @@
 import { Cell, Figure } from "models";
 import { MouseEvent, useCallback, useEffect } from "react";
 import { FC, useState } from "react";
+import { GameService } from "services";
 import styles from './ChessBoard.module.css';
 import { getColorByCoords } from "./ChessBoard.utils";
+import cn from 'classnames';
 
 interface ChessBoardConfig {
     cellWhiteBg: string;
@@ -23,12 +25,19 @@ interface ChessBoardProps {
 
 export const ChessBoard: FC<ChessBoardProps> = (props) => {
     const { cells, reverse, config } = props;
+    const [chessBoardHtml, setChessBoardHtml] = useState<HTMLElement | null>();
 
     const [cellsState, setCellsState] = useState<Cell[][]>([]);
     const [holdingFigure, setHoldingFigure] = useState<Figure>();
+
+    // Позиция с которой взяли фигуру в координатах доски
     const [fromBoardPos, setFromBoardPos] = useState<number[]>();
+
+    // Позиция курсора в пикселях
     const [mousePos, setMousePos] = useState<number[]>();
-    const [chessBoardHtml, setChessBoardHtml] = useState<HTMLElement | null>();
+
+    // Возможные клетки для следующих ходов
+    const [nextMovesPositions, setNextMovesPositions] = useState<number[][]>();
 
     useEffect(() => {
         setCellsState(cells);
@@ -40,7 +49,10 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         setHoldingFigure(figure);
         setFromBoardPos(boardPos);
         document.body.style.cursor = 'grabbing';
-    }, [])
+
+        const nextMoves = GameService.getNextMoves(cellsState, boardPos);
+        setNextMovesPositions(nextMoves);
+    }, [cellsState])
 
     const handleMouseMoveFigure = useCallback((event: MouseEvent) => {
         if (!!chessBoardHtml) {
@@ -64,6 +76,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         
         setHoldingFigure(undefined);
         setFromBoardPos(undefined);
+        setNextMovesPositions(undefined);
 
         document.body.style.cursor = 'initial';
     }, [holdingFigure, fromBoardPos])
@@ -80,6 +93,12 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
             window.removeEventListener('mouseup', handleMouseUpFigure);
         }
     }, [handleMouseUpFigure])
+
+    const checkCellIsNextMoves = useCallback((pos: number[]) => {
+        // TODO: Приведение к строке для сравнения - не лучший способ, требуется доработка
+        return !!nextMovesPositions && 
+            !!nextMovesPositions.find((nextPos) => nextPos.toString() === pos.toString());
+    }, [nextMovesPositions])
 
     return (
         <div 
@@ -137,6 +156,12 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
                                 backgroundColor:  getColorByCoords(i, j) === 'white' ? config.cellWhiteBg : config.cellBlackBg
                             }}
                         >
+                            <div 
+                                className={cn([styles.nextMoveIndicator], { 
+                                    [styles.nextMoveIndicatorShow]: checkCellIsNextMoves([i, j]) 
+                                }
+                            )}/>
+                            
                             {!!cell.figure && (
                                 <div 
                                     className={styles.chessBoardFingure}

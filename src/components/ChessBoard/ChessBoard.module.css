@@ -7,7 +7,22 @@
 }
 
 .chessBoardCell {
+    position: relative;
+}
 
+.nextMoveIndicator {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: calc(50% - 10px);
+    left: calc(50% - 10px);
+    border-radius: 100%;
+    background-color: rgba(193, 95, 95, 0.382);
+    display: none;
+}
+
+.nextMoveIndicatorShow {
+    display: block;
 }
 
 .chessBoardComtrolLayer {
