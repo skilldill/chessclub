@@ -1,0 +1,24 @@
+.chessBoard {
+    position: relative;
+}
+
+.chessBoardRow {
+    display: flex;
+}
+
+.chessBoardCell {
+
+}
+
+.chessBoardComtrolLayer {
+    z-index: 100;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+}
+
+.chessBoardFingure {
+    background-size: contain;
+    background-position: center;
+}
