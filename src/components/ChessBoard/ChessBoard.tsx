@@ -1,4 +1,4 @@
-import { Cell, Figure } from "models";
+import { Cell, Figure, FigureColor } from "models";
 import { MouseEvent, useCallback, useEffect } from "react";
 import { FC, useState } from "react";
 import { GameService } from "services";
@@ -39,20 +39,24 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
     // Возможные клетки для следующих ходов
     const [nextMovesPositions, setNextMovesPositions] = useState<number[][]>();
 
+    const [currentColor, setCurrentColor] = useState<FigureColor>('white');
+
     useEffect(() => {
         setCellsState(cells);
         const chessBoardRef = document.getElementById('chessBoard');
         setChessBoardHtml(chessBoardRef);
     }, [cells])
 
-    const handleMouseDownFigure = useCallback((figure: Figure, boardPos: number[]) => {
-        setHoldingFigure(figure);
-        setFromBoardPos(boardPos);
-        document.body.style.cursor = 'grabbing';
-
-        const nextMoves = GameService.getNextMoves(cellsState, boardPos);
-        setNextMovesPositions(nextMoves);
-    }, [cellsState])
+    const handleMouseDownCell = useCallback((cell: Cell, boardPos: number[]) => {
+        if (!!cell.figure && cell.figure.color === currentColor) {
+            setHoldingFigure(cell.figure);
+            setFromBoardPos(boardPos);
+            document.body.style.cursor = 'grabbing';
+    
+            const nextMoves = GameService.getNextMoves(cellsState, boardPos);
+            setNextMovesPositions(nextMoves);
+        }
+    }, [cellsState, currentColor])
 
     const handleMouseMoveFigure = useCallback((event: MouseEvent) => {
         if (!!chessBoardHtml) {
@@ -62,19 +66,24 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         }
     }, [chessBoardHtml])
 
-    const handleCellMouseUpFigure = useCallback((event: MouseEvent, pos: number[]) => {
+    const handleCellMouseUpCell = useCallback((event: MouseEvent, pos: number[]) => {
+        if (!holdingFigure)
+            return;
+            
         const targetPosIsNext = !!nextMovesPositions?.find((nextPos) => pos[0] === nextPos[0] && pos[1] === nextPos[1]);
 
         const conditionForDoMove = (pos[0] !== fromBoardPos![0] || pos[1] !== fromBoardPos![1]) &&
             targetPosIsNext
 
         if (conditionForDoMove) {
+            setCurrentColor((prevValue) => prevValue === 'black' ? 'white' : 'black');
+
             setCellsState((prevCells) => {
                 const updatedCells = [...prevCells];
                 
                 updatedCells[pos[1]][pos[0]] = { figure: holdingFigure };
                 updatedCells[fromBoardPos![1]][fromBoardPos![0]] = { figure: undefined };
-                        
+                
                 return updatedCells;
             })
         }
@@ -125,8 +134,8 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
                                     height: config.cellSize,
                                     cursor: !!holdingFigure ? 'grabbing' : 'grab',
                                 }}
-                                onMouseUp={(event) => handleCellMouseUpFigure(event, [i, j])}
-                                onMouseDown={() => handleMouseDownFigure(cell.figure!, [i, j])} 
+                                onMouseUp={(event) => handleCellMouseUpCell(event, [i, j])}
+                                onMouseDown={() => handleMouseDownCell(cell, [i, j])} 
                             />
                         )}
                     </div>

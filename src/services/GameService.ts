@@ -188,7 +188,8 @@ export const GameService = {
             if (
                 !!state[nextMove[1]][nextMove[0]].figure && 
                 // Проверяем цвет фигуры, которую хотим съесть
-                state[nextMove[1]][nextMove[0]].figure?.color !== pawnColor
+                state[nextMove[1]][nextMove[0]].figure?.color !== pawnColor &&
+                state[nextMove[1]][nextMove[0]].figure?.type !== 'king'
             ) {
                 nextMoves.push(nextMove);
             }
@@ -201,7 +202,8 @@ export const GameService = {
             if (
                 !!state[nextMove[1]][nextMove[0]].figure && 
                 // Проверяем цвет фигуры, которую хотим съесть
-                state[nextMove[1]][nextMove[0]].figure?.color !== pawnColor
+                state[nextMove[1]][nextMove[0]].figure?.color !== pawnColor &&
+                state[nextMove[1]][nextMove[0]].figure?.type !== 'king'
             ) {
                 nextMoves.push(nextMove);
             }
