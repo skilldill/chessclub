@@ -1,4 +1,4 @@
-import { Cell } from "models";
+import { Cell, FigureColor } from "models";
 
 export const GameService = {
     getNextMoves: (state: Cell[][], [i, j]: number[]): number[][] => {
@@ -38,6 +38,20 @@ export const GameService = {
     
     checkInBorderBoard: (state: Cell[][], pos: number[]) => {
         return (pos[0] > 0 && pos[0] < state.length) && (pos[1] > 0 && pos[1] < state.length);
+    },
+
+    getFigureColor: (state: Cell[][], pos: number[]) => {
+        return state[pos[1]][pos[0]].figure!.color;
+    },
+
+    checkPossibleMoveTo: (state: Cell[][], color: FigureColor, target: number[]) => {
+        return GameService.checkInBorderBoard(state, target) && (
+            !state[target[1]][target[0]].figure || (
+                !!state[target[1]][target[0]].figure &&
+                state[target[1]][target[0]].figure?.color !== color &&
+                state[target[1]][target[0]].figure?.type !== 'king'
+            )
+        );
     },
 
     calcDiagonalMoves: (state: Cell[][], figurePos: number[]) => {
@@ -142,7 +156,7 @@ export const GameService = {
 
     calcPawnMoves: (state: Cell[][], figurePos: number[]) => {
         const nextMoves: number[][] = [];
-        const pawnColor = state[figurePos[1]][figurePos[0]].figure!.color;
+        const pawnColor = GameService.getFigureColor(state, figurePos);
 
         // Забрать влево-вперед
         let nextMove = [figurePos[0] - 1, figurePos[1] - 1];
@@ -190,8 +204,28 @@ export const GameService = {
         return nextMoves;
     },
 
-    calcKnightsMove: (state: Cell[][], figurePos: number[]) => {
+    calcKnigtsMove: (state: Cell[][], figurePos: number[]) => {
+        const nextMoves: number[][] = [];
+        const knigtColor = GameService.getFigureColor(state, figurePos);
 
+        const possibleMoves: number[][] = [
+            [figurePos[0] + 1, figurePos[1] - 2],
+            [figurePos[0] - 1, figurePos[1] - 2],
+            [figurePos[0] - 2, figurePos[1] + 1],
+            [figurePos[0] - 2, figurePos[1] - 1],
+            [figurePos[0] + 2, figurePos[1] + 1],
+            [figurePos[0] + 2, figurePos[1] - 1],
+            [figurePos[0] + 1, figurePos[1] + 2],
+            [figurePos[0] - 1, figurePos[1] + 2],
+        ];
+
+        possibleMoves.forEach((move) => {
+            if (GameService.checkPossibleMoveTo(state, knigtColor, move)) {
+                nextMoves.push(move);
+            }
+        })
+
+        return nextMoves;
     },
 
     getNextMovesPawn: (state: Cell[][], figurePos: number[]) => {
@@ -203,8 +237,7 @@ export const GameService = {
     },
 
     getNextMovesKnigts: (state: Cell[][], figurePos: number[]) => {
-        let nextPositions: number[][] = [[2, 2], [3, 3]];
-        return nextPositions;
+        return GameService.calcKnigtsMove(state, figurePos);
     },
 
     getNextMovesRook: (state: Cell[][], figurePos: number[]) => {
