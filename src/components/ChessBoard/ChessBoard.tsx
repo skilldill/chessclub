@@ -63,7 +63,12 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
     }, [chessBoardHtml])
 
     const handleCellMouseUpFigure = useCallback((event: MouseEvent, pos: number[]) => {
-        if (pos.toString() !== fromBoardPos?.toString()) {
+        const targetPosIsNext = !!nextMovesPositions?.find((nextPos) => pos[0] === nextPos[0] && pos[1] === nextPos[1]);
+
+        const conditionForDoMove = (pos[0] !== fromBoardPos![0] || pos[1] !== fromBoardPos![1]) &&
+            targetPosIsNext
+
+        if (conditionForDoMove) {
             setCellsState((prevCells) => {
                 const updatedCells = [...prevCells];
                 
@@ -79,7 +84,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         setNextMovesPositions(undefined);
 
         document.body.style.cursor = 'initial';
-    }, [holdingFigure, fromBoardPos])
+    }, [holdingFigure, fromBoardPos, nextMovesPositions])
 
     const handleMouseUpFigure = useCallback(() => {
         setHoldingFigure(undefined);
