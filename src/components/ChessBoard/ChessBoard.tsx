@@ -100,9 +100,8 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
     }, [handleMouseUpFigure])
 
     const checkCellIsNextMoves = useCallback((pos: number[]) => {
-        // TODO: Приведение к строке для сравнения - не лучший способ, требуется доработка
         return !!nextMovesPositions && 
-            !!nextMovesPositions.find((nextPos) => nextPos.toString() === pos.toString());
+            !!nextMovesPositions.find((nextPos) => nextPos[0] === pos[0] && nextPos[1] === pos[1]);
     }, [nextMovesPositions])
 
     return (
@@ -110,6 +109,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
             id="chessBoard"
             className={styles.chessBoard}
             onMouseMove={handleMouseMoveFigure}
+            onContextMenu={(event) => event.preventDefault()}
         >
             <div className={styles.chessBoardComtrolLayer}>
                 {/**Слой для контроля положения фигуры на доске */

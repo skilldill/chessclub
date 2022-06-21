@@ -1,7 +1,7 @@
 import { VStack, Text, Button, Grid, GridItem, Wrap } from "@chakra-ui/react";
 import { FC } from "react";
 import { ChessBoard } from "../../components";
-import { CHESS_BOARD_CONFIG, INITIAL_CELLS } from "./Game.config";
+import { CHESS_BOARD_CONFIG, INITIAL_CELLS, INITIAL_CELLS_TEST } from "./Game.config";
 
 
 

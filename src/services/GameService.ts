@@ -37,7 +37,7 @@ export const GameService = {
     },
     
     checkInBorderBoard: (state: Cell[][], pos: number[]) => {
-        return (pos[0] > 0 && pos[0] < state.length) && (pos[1] > 0 && pos[1] < state.length);
+        return (pos[0] >= 0 && pos[0] < state.length) && (pos[1] >= 0 && pos[1] < state.length);
     },
 
     getFigureColor: (state: Cell[][], pos: number[]) => {
@@ -54,50 +54,64 @@ export const GameService = {
         );
     },
 
+    checkEnemy: (state: Cell[][], color: FigureColor, target: number[]) => {
+        const targetColor = state[target[1]][target[0]].figure?.color;
+        return !!targetColor && targetColor !== color;
+    },
+
     calcDiagonalMoves: (state: Cell[][], figurePos: number[]) => {
+        const figureColor = GameService.getFigureColor(state, figurePos);
         const nextMoves: number[][] = [];
 
         // Влево-вверх
         let nextMove = [figurePos[0] - 1, figurePos[1] - 1];
 
-        while(
-            GameService.checkInBorderBoard(state, nextMove) && 
-            !state[nextMove[1]][nextMove[0]].figure
-        ) {
+        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove)) {
             nextMoves.push([...nextMove]);
+
+            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+                break;
+            }
+
             nextMove = [nextMove[0] - 1, nextMove[1] - 1];
         }
 
         // Вправо-вверх
         nextMove = [figurePos[0] + 1, figurePos[1] - 1];
 
-        while(
-            GameService.checkInBorderBoard(state, nextMove) && 
-            !state[nextMove[1]][nextMove[0]].figure
-        ) {
+        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove)) {
             nextMoves.push([...nextMove]);
+
+            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+                break;
+            }
+
             nextMove = [nextMove[0] + 1, nextMove[1] - 1];
         }
 
         // Вправо-вниз
         nextMove = [figurePos[0] + 1, figurePos[1] + 1];
 
-        while(
-            GameService.checkInBorderBoard(state, nextMove) && 
-            !state[nextMove[1]][nextMove[0]].figure
-        ) {
+        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove)) {
             nextMoves.push([...nextMove]);
+
+            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+                break;
+            }
+
             nextMove = [nextMove[0] + 1, nextMove[1] + 1];
         }
 
         // Вправо-вниз
         nextMove = [figurePos[0] - 1, figurePos[1] + 1];
 
-        while(
-            GameService.checkInBorderBoard(state, nextMove) && 
-            !state[nextMove[1]][nextMove[0]].figure
-        ) {
+        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove)) {
             nextMoves.push([...nextMove]);
+
+            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+                break;
+            }
+
             nextMove = [nextMove[0] - 1, nextMove[1] + 1];
         }
 
@@ -105,49 +119,58 @@ export const GameService = {
     },
 
     calcHorizontalAndVerticalMoves: (state: Cell[][], figurePos: number[]) => {
+        const figureColor = GameService.getFigureColor(state, figurePos);
         const nextMoves: number[][] = [];
 
         // Влево
         let nextMove = [figurePos[0] - 1, figurePos[1]];
 
-        while(
-            GameService.checkInBorderBoard(state, nextMove) && 
-            !state[nextMove[1]][nextMove[0]].figure
-        ) {
+        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove)) {
             nextMoves.push([...nextMove]);
+
+            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+                break;
+            }
+
             nextMove = [nextMove[0] - 1, nextMove[1]];
         }
 
         // Вверх
         nextMove = [figurePos[0], figurePos[1] - 1];
 
-        while(
-            GameService.checkInBorderBoard(state, nextMove) && 
-            !state[nextMove[1]][nextMove[0]].figure
-        ) {
+        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove)) {
             nextMoves.push([...nextMove]);
+
+            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+                break;
+            }
+
             nextMove = [nextMove[0], nextMove[1] - 1];
         }
 
         // Вправо
         nextMove = [figurePos[0] + 1, figurePos[1]];
 
-        while(
-            GameService.checkInBorderBoard(state, nextMove) && 
-            !state[nextMove[1]][nextMove[0]].figure
-        ) {
+        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove)) {
             nextMoves.push([...nextMove]);
+
+            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+                break;
+            }
+
             nextMove = [nextMove[0] + 1, nextMove[1]];
         }
 
         // Вниз
         nextMove = [figurePos[0], figurePos[1] + 1];
 
-        while(
-            GameService.checkInBorderBoard(state, nextMove) && 
-            !state[nextMove[1]][nextMove[0]].figure
-        ) {
+        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove)) {
             nextMoves.push([...nextMove]);
+
+            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+                break;
+            }
+
             nextMove = [nextMove[0], nextMove[1] + 1];
         }
 
