@@ -1,7 +1,7 @@
 import { Cell, FigureColor } from "models";
 
 export const GameService = {
-    getNextMoves: (state: Cell[][], [i, j]: number[]): number[][] => {
+    getNextMoves: (state: Cell[][], [i, j]: number[], revese = false): number[][] => {
         const figure = state[j][i].figure!;
         const { type } = figure;
 
@@ -9,7 +9,7 @@ export const GameService = {
 
         switch(type) {
             case 'pawn':
-                nextPositions = GameService.getNextMovesPawn(state, [i, j]);
+                nextPositions = GameService.getNextMovesPawn(state, [i, j], revese);
                 break;
             
             case 'bishop':
@@ -177,7 +177,148 @@ export const GameService = {
         return nextMoves;
     },
 
-    calcPawnMoves: (state: Cell[][], figurePos: number[]) => {
+    // Функция для проверки возможности хода
+    // ЗАВИСИТ ОТ ПОРЯДКА ХОДА В СПИСКЕ ВОЗМОЖНЫХ ХОДОВ ПЕШКИ
+    mapForCheckPossiblePawnMove: (
+        state: Cell[][],
+        figurePos: number[],
+        nextMove: number[], 
+        pawnColor: FigureColor,
+        i: number, 
+        reverse: boolean,
+        callbackFn: (move: number[]) => void
+    ) => {
+        if (GameService.checkInBorderBoard(state, nextMove)) {
+            switch(i) {
+                // Начальный ход вперед
+                case 0:
+                    if (reverse) {
+                        // Если на пути есть фигура
+                        const figureOnPath = state[nextMove[1] - 1][nextMove[0]].figure || state[nextMove[1]][nextMove[0]].figure;
+                        
+                        if (figurePos[1] === 1 && figureOnPath === undefined) {
+                            callbackFn(nextMove);
+                        }
+                    } else {
+                        // Если на пути есть фигура
+                        const figureOnPath = state[nextMove[1] + 1][nextMove[0]].figure || state[nextMove[1]][nextMove[0]].figure;
+                                                
+                        if (figurePos[1] === 6 && figureOnPath === undefined) {
+                            callbackFn(nextMove);
+                        }
+                    }
+                    break;
+                
+                // Обычный ход вперед
+                case 1:
+                    // Если на пути есть фигура
+                    const figureOnPath = state[nextMove[1]][nextMove[0]].figure;
+                        
+                    if (figureOnPath === undefined) {
+                        callbackFn(nextMove);
+                    }
+                    break;
+                
+                // Атака
+                case 2:
+                case 3:
+                    const figureForAttack = state[nextMove[1]][nextMove[0]].figure;
+                        
+                    if (!!figureForAttack && figureForAttack.color !== pawnColor && figureForAttack.type !== 'king') {
+                        callbackFn(nextMove);
+                    }
+                    break;
+            }
+        }
+    },
+
+    calcPawnMovesUpdated: (state: Cell[][], figurePos: number[], revese = false) => {
+        const pawnColor = GameService.getFigureColor(state, figurePos);
+        
+        const possibleMovesDefault = [
+            // Первый ход
+            [figurePos[0], figurePos[1] - 2],
+            // Обычный ход вперед
+            [figurePos[0], figurePos[1] - 1],
+            // Атака
+            [figurePos[0] - 1, figurePos[1] - 1],
+            // Атака
+            [figurePos[0] + 1, figurePos[1] - 1],
+        ];
+
+        // В обычном состоянии это возможные ходы за черных
+        // с параметром reverse = true возможные ходы за белых
+        const possibleMovesReverse = [
+            //Первый ход
+            [figurePos[0], figurePos[1] + 2],
+            // Обычный ход
+            [figurePos[0], figurePos[1] + 1],
+            // Атака
+            [figurePos[0] - 1, figurePos[1] + 1],
+            // Атака
+            [figurePos[0] + 1, figurePos[1] + 1],
+        ];
+
+        const nextMoves: number[][] = [];
+
+        if (revese) {
+            if (pawnColor === 'white') {
+                possibleMovesReverse.forEach((nextMove, i) => {
+                    GameService.mapForCheckPossiblePawnMove(
+                        state,
+                        figurePos,
+                        nextMove,
+                        pawnColor,
+                        i,
+                        true,
+                        (move) => nextMoves.push(move)
+                    )
+                })
+            } else {
+                possibleMovesDefault.forEach((nextMove, i) => {
+                    GameService.mapForCheckPossiblePawnMove(
+                        state,
+                        figurePos,
+                        nextMove,
+                        pawnColor,
+                        i,
+                        false,
+                        (move) => nextMoves.push(move)
+                    )
+                })
+            }
+        } else {
+            if (pawnColor === 'white') {
+                possibleMovesDefault.forEach((nextMove, i) => {
+                    GameService.mapForCheckPossiblePawnMove(
+                        state,
+                        figurePos,
+                        nextMove,
+                        pawnColor,
+                        i,
+                        false,
+                        (move) => nextMoves.push(move)
+                    )
+                })
+            } else {
+                possibleMovesReverse.forEach((nextMove, i) => {
+                    GameService.mapForCheckPossiblePawnMove(
+                        state,
+                        figurePos,
+                        nextMove,
+                        pawnColor,
+                        i,
+                        true,
+                        (move) => nextMoves.push(move)
+                    )
+                })
+            }
+        }
+
+        return nextMoves;
+    },
+
+    calcPawnMoves: (state: Cell[][], figurePos: number[], revese = false) => {
         const nextMoves: number[][] = [];
         const pawnColor = GameService.getFigureColor(state, figurePos);
 
@@ -253,8 +394,8 @@ export const GameService = {
         return nextMoves;
     },
 
-    getNextMovesPawn: (state: Cell[][], figurePos: number[]) => {
-        return GameService.calcPawnMoves(state, figurePos);
+    getNextMovesPawn: (state: Cell[][], figurePos: number[], reverse: boolean) => {
+        return GameService.calcPawnMovesUpdated(state, figurePos, reverse);
     },
 
     getNextMovesBishop: (state: Cell[][], figurePos: number[]) => {

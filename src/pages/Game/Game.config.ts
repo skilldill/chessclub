@@ -170,7 +170,7 @@ export const INITIAL_CELLS_TEST: Cell[][] = [
 export const CHESS_BOARD_CONFIG = {
     cellWhiteBg: '#e0e0e0',
     cellBlackBg: '#fff',
-    cellSize: 80,
+    cellSize: 100,
 
     figures: {
         white: {

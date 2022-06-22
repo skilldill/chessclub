@@ -42,10 +42,18 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
     const [currentColor, setCurrentColor] = useState<FigureColor>('white');
 
     useEffect(() => {
-        setCellsState(cells);
+        if (reverse) {
+            const prepareCells = [...cells];
+            const reversedCells = [...prepareCells.reverse()];
+
+            setCellsState(reversedCells.map((row) => [...row].reverse()));
+        } else {
+            setCellsState(cells);
+        }
+
         const chessBoardRef = document.getElementById('chessBoard');
         setChessBoardHtml(chessBoardRef);
-    }, [cells])
+    }, [cells, reverse])
 
     const handleMouseDownCell = useCallback((cell: Cell, boardPos: number[]) => {
         if (!!cell.figure && cell.figure.color === currentColor) {
@@ -53,10 +61,10 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
             setFromBoardPos(boardPos);
             document.body.style.cursor = 'grabbing';
     
-            const nextMoves = GameService.getNextMoves(cellsState, boardPos);
+            const nextMoves = GameService.getNextMoves(cellsState, boardPos, reverse);
             setNextMovesPositions(nextMoves);
         }
-    }, [cellsState, currentColor])
+    }, [cellsState, currentColor, reverse])
 
     const handleMouseMoveFigure = useCallback((event: MouseEvent) => {
         if (!!chessBoardHtml) {
@@ -69,7 +77,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
     const handleCellMouseUpCell = useCallback((event: MouseEvent, pos: number[]) => {
         if (!holdingFigure)
             return;
-            
+
         const targetPosIsNext = !!nextMovesPositions?.find((nextPos) => pos[0] === nextPos[0] && pos[1] === nextPos[1]);
 
         const conditionForDoMove = (pos[0] !== fromBoardPos![0] || pos[1] !== fromBoardPos![1]) &&
