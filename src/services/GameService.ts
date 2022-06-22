@@ -1,7 +1,7 @@
 import { Cell, FigureColor } from "models";
 
 export const GameService = {
-    getNextMoves: (state: Cell[][], [i, j]: number[], revese = false): number[][] => {
+    getNextMoves: (state: Cell[][], [i, j]: number[], revese = false, onlyAttacks = false): number[][] => {
         const figure = state[j][i].figure!;
         const { type } = figure;
 
@@ -9,7 +9,7 @@ export const GameService = {
 
         switch(type) {
             case 'pawn':
-                nextPositions = GameService.getNextMovesPawn(state, [i, j], revese);
+                nextPositions = GameService.getNextMovesPawn(state, [i, j], revese, onlyAttacks);
                 break;
             
             case 'bishop':
@@ -29,7 +29,7 @@ export const GameService = {
                 break;
 
             case 'king':
-                nextPositions = GameService.getNextMovesKing(state, [i, j]);
+                nextPositions = GameService.getNextMovesKing(state, [i, j], onlyAttacks);
                 break;
         }
 
@@ -186,6 +186,8 @@ export const GameService = {
         pawnColor: FigureColor,
         i: number, 
         reverse: boolean,
+        // Параметр необходим для получения полей на которые может пойти король
+        onlyAttacks: boolean,
         callbackFn: (move: number[]) => void
     ) => {
         if (GameService.checkInBorderBoard(state, nextMove)) {
@@ -196,14 +198,14 @@ export const GameService = {
                         // Если на пути есть фигура
                         const figureOnPath = state[nextMove[1] - 1][nextMove[0]].figure || state[nextMove[1]][nextMove[0]].figure;
                         
-                        if (figurePos[1] === 1 && figureOnPath === undefined) {
+                        if (figurePos[1] === 1 && figureOnPath === undefined  && !onlyAttacks) {
                             callbackFn(nextMove);
                         }
                     } else {
                         // Если на пути есть фигура
                         const figureOnPath = state[nextMove[1] + 1][nextMove[0]].figure || state[nextMove[1]][nextMove[0]].figure;
                                                 
-                        if (figurePos[1] === 6 && figureOnPath === undefined) {
+                        if (figurePos[1] === 6 && figureOnPath === undefined  && !onlyAttacks) {
                             callbackFn(nextMove);
                         }
                     }
@@ -214,7 +216,7 @@ export const GameService = {
                     // Если на пути есть фигура
                     const figureOnPath = state[nextMove[1]][nextMove[0]].figure;
                         
-                    if (figureOnPath === undefined) {
+                    if (figureOnPath === undefined && !onlyAttacks) {
                         callbackFn(nextMove);
                     }
                     break;
@@ -232,7 +234,7 @@ export const GameService = {
         }
     },
 
-    calcPawnMovesUpdated: (state: Cell[][], figurePos: number[], revese = false) => {
+    calcPawnMoves: (state: Cell[][], figurePos: number[], revese = false, onlyAttacks = false) => {
         const pawnColor = GameService.getFigureColor(state, figurePos);
         
         const possibleMovesDefault = [
@@ -271,6 +273,7 @@ export const GameService = {
                         pawnColor,
                         i,
                         true,
+                        onlyAttacks,
                         (move) => nextMoves.push(move)
                     )
                 })
@@ -283,6 +286,7 @@ export const GameService = {
                         pawnColor,
                         i,
                         false,
+                        onlyAttacks,
                         (move) => nextMoves.push(move)
                     )
                 })
@@ -297,6 +301,7 @@ export const GameService = {
                         pawnColor,
                         i,
                         false,
+                        onlyAttacks,
                         (move) => nextMoves.push(move)
                     )
                 })
@@ -309,6 +314,7 @@ export const GameService = {
                         pawnColor,
                         i,
                         true,
+                        onlyAttacks,
                         (move) => nextMoves.push(move)
                     )
                 })
@@ -318,59 +324,7 @@ export const GameService = {
         return nextMoves;
     },
 
-    calcPawnMoves: (state: Cell[][], figurePos: number[], revese = false) => {
-        const nextMoves: number[][] = [];
-        const pawnColor = GameService.getFigureColor(state, figurePos);
-
-        // Забрать влево-вперед
-        let nextMove = [figurePos[0] - 1, figurePos[1] - 1];
-
-        if (GameService.checkInBorderBoard(state, nextMove)) {
-            if (
-                !!state[nextMove[1]][nextMove[0]].figure && 
-                // Проверяем цвет фигуры, которую хотим съесть
-                state[nextMove[1]][nextMove[0]].figure?.color !== pawnColor &&
-                state[nextMove[1]][nextMove[0]].figure?.type !== 'king'
-            ) {
-                nextMoves.push(nextMove);
-            }
-        }
-
-        // Забрать вправо-вперед
-        nextMove = [figurePos[0] + 1, figurePos[1] - 1];
-
-        if (GameService.checkInBorderBoard(state, nextMove)) {
-            if (
-                !!state[nextMove[1]][nextMove[0]].figure && 
-                // Проверяем цвет фигуры, которую хотим съесть
-                state[nextMove[1]][nextMove[0]].figure?.color !== pawnColor &&
-                state[nextMove[1]][nextMove[0]].figure?.type !== 'king'
-            ) {
-                nextMoves.push(nextMove);
-            }
-        }
-
-        // Вперед
-        nextMove = [figurePos[0], figurePos[1] - 1];
-
-        if (
-            GameService.checkInBorderBoard(state, nextMove) && 
-            !state[nextMove[1]][nextMove[0]].figure
-        ) {
-            nextMoves.push(nextMove);
-        }
-
-        // Проверка на каком поле находится пешка
-        // Если поле равно 6(начальное),  
-        // то можно сходить на два хода вперед
-        if (figurePos[1] === 6) {
-            nextMoves.push([figurePos[0], figurePos[1] - 2]);
-        }
-
-        return nextMoves;
-    },
-
-    calcKnigtsMove: (state: Cell[][], figurePos: number[]) => {
+    calcKnigtsMoves: (state: Cell[][], figurePos: number[]) => {
         const nextMoves: number[][] = [];
         const knigtColor = GameService.getFigureColor(state, figurePos);
 
@@ -394,8 +348,61 @@ export const GameService = {
         return nextMoves;
     },
 
-    getNextMovesPawn: (state: Cell[][], figurePos: number[], reverse: boolean) => {
-        return GameService.calcPawnMovesUpdated(state, figurePos, reverse);
+    calcKingMoves: (state: Cell[][], figurePos: number[], onlyAttacks: boolean) => {
+        const kingColor = GameService.getFigureColor(state, figurePos);
+
+        const possibleMoves = [
+            [figurePos[0], figurePos[1] - 1],
+            [figurePos[0] + 1, figurePos[1] - 1],
+            [figurePos[0] + 1, figurePos[1]],
+            [figurePos[0] + 1, figurePos[1] + 1],
+            [figurePos[0], figurePos[1] + 1],
+            [figurePos[0] - 1, figurePos[1] + 1],
+            [figurePos[0] - 1, figurePos[1]],
+            [figurePos[0] - 1, figurePos[1] - 1],
+        ]
+
+        if (onlyAttacks) {
+            return possibleMoves;
+        }
+
+        const enemyCells: number[][] = [];
+
+        state.forEach((row, j) => {
+            row.forEach((cell, i) => {
+                if (!!cell.figure && cell.figure.color !== kingColor) {
+                    enemyCells.push([i, j]);
+                }
+            })
+        })
+
+        let attacksPositions: number[][] = [];
+
+        enemyCells.forEach((enemyCellPos) => {
+            const nextMoves = GameService.getNextMoves(state, enemyCellPos, false, true);
+            attacksPositions = [...attacksPositions, ...nextMoves];
+        })
+
+        const nextMoves: number[][] = [];
+
+        possibleMoves.forEach((possibleMove) => {
+            const found = attacksPositions.find((attcakPosition) => 
+                attcakPosition[0] === possibleMove[0] && 
+                attcakPosition[1] === possibleMove[1]
+            );
+
+            if (!found) {
+                // Если возможный ход короля не попадает под атаку
+                // То добавляем это поле в возможные следующие ходы
+                nextMoves.push(possibleMove);
+            }
+        })
+
+        return nextMoves;
+    },
+
+    getNextMovesPawn: (state: Cell[][], figurePos: number[], reverse: boolean, onlyAttacks: boolean) => {
+        return GameService.calcPawnMoves(state, figurePos, reverse, onlyAttacks);
     },
 
     getNextMovesBishop: (state: Cell[][], figurePos: number[]) => {
@@ -403,7 +410,7 @@ export const GameService = {
     },
 
     getNextMovesKnigts: (state: Cell[][], figurePos: number[]) => {
-        return GameService.calcKnigtsMove(state, figurePos);
+        return GameService.calcKnigtsMoves(state, figurePos);
     },
 
     getNextMovesRook: (state: Cell[][], figurePos: number[]) => {
@@ -418,8 +425,7 @@ export const GameService = {
         return moves;
     },
 
-    getNextMovesKing: (state: Cell[][], figurePos: number[]) => {
-        let nextPositions: number[][] = [[2, 2], [3, 3]];
-        return nextPositions;
+    getNextMovesKing: (state: Cell[][], figurePos: number[], onlyAttacks: boolean) => {
+        return GameService.calcKingMoves(state, figurePos, onlyAttacks);
     },
 }
