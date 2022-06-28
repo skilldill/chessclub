@@ -297,7 +297,8 @@ export const GameService = {
                 return !GameService.hasFigure(state, target.pos);
 
             case 'attack':
-                return GameService.hasFigure(state, target.pos) && 
+                return GameService.checkInBorderBoard(state, target.pos) && 
+                    GameService.hasFigure(state, target.pos) && 
                     GameService.checkEnemy(state, pos, target.pos) &&
                     !GameService.chekEnemyKing(state, pos, target.pos)
         }
