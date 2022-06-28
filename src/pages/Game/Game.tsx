@@ -18,8 +18,8 @@ export const Game: FC = () => {
             </GridItem>
             <GridItem>
                 <ChessBoard 
-                    reverse={false}
-                    cells={INITIAL_CELLS_TEST} 
+                    reverse={true}
+                    cells={INITIAL_CELLS} 
                     config={CHESS_BOARD_CONFIG}
                     onChange={() => {}} 
                 />

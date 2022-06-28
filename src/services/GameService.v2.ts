@@ -1,4 +1,4 @@
-import { Cell, FigureColor } from "models";
+import { Cell, FigureColor, MoveByPawn } from "models";
 
 export const GameService = {
     getNextMoves: (state: Cell[][], [i, j]: number[], revese = false): number[][] => {
@@ -81,6 +81,10 @@ export const GameService = {
         return GameService.checkEnemy(state, pos, target);
     },
 
+    hasFigure: (state: Cell[][], pos: number[]) => {
+        return !!state[pos[1]][pos[0]].figure;
+    },
+
     /**
      * Полная проверка возможности хода для фигур: pawn, knigt, bishop, rook, queen
      * @param state состояния доски
@@ -94,7 +98,7 @@ export const GameService = {
             // Если в клетке - цели нет фигуры 
             !state[target[1]][target[0]].figure || (
                 // ИЛИ Если есть фигура и эта фигура вражеская и не король
-                !!state[target[1]][target[0]].figure && 
+                GameService.hasFigure(state, target) && 
                 GameService.checkEnemy(state, pos, target) && 
                 !GameService.chekEnemyKing(state, pos, target)
             )
@@ -230,163 +234,12 @@ export const GameService = {
         return nextMoves;
     },
 
-    // Функция для проверки возможности хода
-    // ЗАВИСИТ ОТ ПОРЯДКА ХОДА В СПИСКЕ ВОЗМОЖНЫХ ХОДОВ ПЕШКИ
-    mapForCheckPossiblePawnMove: (
-        state: Cell[][],
-        figurePos: number[],
-        nextMove: number[], 
-        pawnColor: FigureColor,
-        i: number, 
-        reverse: boolean,
-        // Параметр необходим для получения полей на которые может пойти король
-        onlyDefense: boolean,
-        callbackFn: (move: number[]) => void
-    ) => {
-        if (GameService.checkInBorderBoard(state, nextMove)) {
-            switch(i) {
-                // Начальный ход вперед
-                case 0:
-                    if (reverse) {
-                        // Если на пути есть фигура
-                        const figureOnPath = state[nextMove[1] - 1][nextMove[0]].figure || state[nextMove[1]][nextMove[0]].figure;
-                        
-                        if (figurePos[1] === 1 && figureOnPath === undefined  && !onlyDefense) {
-                            callbackFn(nextMove);
-                        }
-                    } else {
-                        // Если на пути есть фигура
-                        const figureOnPath = state[nextMove[1] + 1][nextMove[0]].figure || state[nextMove[1]][nextMove[0]].figure;
-                                                
-                        if (figurePos[1] === 6 && figureOnPath === undefined  && !onlyDefense) {
-                            callbackFn(nextMove);
-                        }
-                    }
-                    break;
-                
-                // Обычный ход вперед
-                case 1:
-                    // Если на пути есть фигура
-                    const figureOnPath = state[nextMove[1]][nextMove[0]].figure;
-                        
-                    if (figureOnPath === undefined && !onlyDefense) {
-                        callbackFn(nextMove);
-                    }
-                    break;
-                
-                // Атака
-                case 2:
-                case 3:
-                    const figureForAttack = state[nextMove[1]][nextMove[0]].figure;
-                        
-                    if (
-                        (!!figureForAttack && figureForAttack.color !== pawnColor && figureForAttack.type !== 'king') ||
-                        onlyDefense
-                    ) {
-                        callbackFn(nextMove);
-                    }
-
-                    break;
-            }
-        }
-    },
-
-    calcPawnMoves: (state: Cell[][], figurePos: number[], revese = false, onlyDefense = false) => {
-        const pawnColor = GameService.getFigureColor(state, figurePos);
-        
-        const possibleMovesDefault = [
-            // Первый ход
-            [figurePos[0], figurePos[1] - 2],
-            // Обычный ход вперед
-            [figurePos[0], figurePos[1] - 1],
-            // Атака
-            [figurePos[0] - 1, figurePos[1] - 1],
-            // Атака
-            [figurePos[0] + 1, figurePos[1] - 1],
-        ];
-
-        // В обычном состоянии это возможные ходы за черных
-        // с параметром reverse = true возможные ходы за белых
-        const possibleMovesReverse = [
-            //Первый ход
-            [figurePos[0], figurePos[1] + 2],
-            // Обычный ход
-            [figurePos[0], figurePos[1] + 1],
-            // Атака
-            [figurePos[0] - 1, figurePos[1] + 1],
-            // Атака
-            [figurePos[0] + 1, figurePos[1] + 1],
-        ];
-
-        const nextMoves: number[][] = [];
-
-        if (revese) {
-            if (pawnColor === 'white') {
-                possibleMovesReverse.forEach((nextMove, i) => {
-                    GameService.mapForCheckPossiblePawnMove(
-                        state,
-                        figurePos,
-                        nextMove,
-                        pawnColor,
-                        i,
-                        true,
-                        onlyDefense,
-                        (move) => nextMoves.push(move)
-                    )
-                })
-            } else {
-                possibleMovesDefault.forEach((nextMove, i) => {
-                    GameService.mapForCheckPossiblePawnMove(
-                        state,
-                        figurePos,
-                        nextMove,
-                        pawnColor,
-                        i,
-                        false,
-                        onlyDefense,
-                        (move) => nextMoves.push(move)
-                    )
-                })
-            }
-        } else {
-            if (pawnColor === 'white') {
-                possibleMovesDefault.forEach((nextMove, i) => {
-                    GameService.mapForCheckPossiblePawnMove(
-                        state,
-                        figurePos,
-                        nextMove,
-                        pawnColor,
-                        i,
-                        false,
-                        onlyDefense,
-                        (move) => nextMoves.push(move)
-                    )
-                })
-            } else {
-                possibleMovesReverse.forEach((nextMove, i) => {
-                    GameService.mapForCheckPossiblePawnMove(
-                        state,
-                        figurePos,
-                        nextMove,
-                        pawnColor,
-                        i,
-                        true,
-                        onlyDefense,
-                        (move) => nextMoves.push(move)
-                    )
-                })
-            }
-        }
-
-        return nextMoves;
-    },
-
     /**
-     * Возвращает возможные ходы для коня
-     * @param state состояние доски
-     * @param figurePos текущая позиция фигуры
-     * @returns 
-     */
+    * Возвращает возможные ходы для коня
+    * @param state состояние доски
+    * @param figurePos текущая позиция фигуры
+    * @returns 
+    */
     calcKnigtsMoves: (state: Cell[][], figurePos: number[]) => {
         const nextMoves: number[][] = [];
 
@@ -406,6 +259,112 @@ export const GameService = {
                 nextMoves.push(move);
             }
         })
+
+        return nextMoves;
+    },
+
+    /**
+     * Проверяет возможность пешки пойти на клетку - цель
+     * @param state состояние доски
+     * @param pos текущая позиция пешки
+     * @param target клетка - цель
+     * @param pawnColor цвет пешки вычисленный заранее
+     * @param reverse перевернута ли доска
+     */
+    checkPossiblePawnMoveToPos: (
+        state: Cell[][], 
+        pos: number[], 
+        target: MoveByPawn, 
+        pawnColor: FigureColor,
+        reverse: boolean
+    ) => {
+        switch(target.typeMove) {
+            case 'first':
+                // Если доска перевернута
+                if (reverse) {
+                    if (pawnColor === 'white') {
+                        return pos[1] === 1 && 
+                            !GameService.hasFigure(state, [target.pos[0], target.pos[1] - 1]) &&
+                            !GameService.hasFigure(state, target.pos);
+                    } else {
+                        return pos[1] === 6 && 
+                            !GameService.hasFigure(state, [target.pos[0], target.pos[1] + 1]) &&
+                            !GameService.hasFigure(state, target.pos);
+                    }
+                } 
+                
+                // Доска в обычном положении
+                if (pawnColor === 'white') {
+                    return pos[1] === 6 && 
+                        !GameService.hasFigure(state, [target.pos[0], target.pos[1] + 1]) &&
+                        !GameService.hasFigure(state, target.pos);
+                } else {
+                    return pos[1] === 1 && 
+                        !GameService.hasFigure(state, [target.pos[0], target.pos[1] - 1]) &&
+                        !GameService.hasFigure(state, target.pos);
+                }
+
+            case 'default':
+                return !GameService.hasFigure(state, target.pos);
+
+            case 'attack':
+                return GameService.hasFigure(state, target.pos) && 
+                    GameService.checkEnemy(state, pos, target.pos) &&
+                    !GameService.chekEnemyKing(state, pos, target.pos)
+        }
+    },
+
+    /**
+     * Возвращает возможные позиции для пешки
+     * @param state состояние доски
+     * @param figurePos текущее положение пешки
+     * @param revese перевернута ли доска
+     * @returns 
+     */
+    calcPawnMoves: (state: Cell[][], figurePos: number[], revese: boolean) => {
+        const pawnColor = GameService.getFigureColor(state, figurePos);
+        const nextMoves: number[][] = [];
+
+        // Возможные позиции для пешки
+        const possibleMoves: MoveByPawn[] = [
+            // Первый ход
+            { typeMove: 'first', pos: [figurePos[0], figurePos[1] - 2] },
+            
+            // Обычный ход вперед
+            { typeMove: 'default', pos: [figurePos[0], figurePos[1] - 1] },
+
+            // Атака
+            { typeMove: 'attack', pos: [figurePos[0] - 1, figurePos[1] - 1] },
+
+            // Атака
+            { typeMove: 'attack', pos: [figurePos[0] + 1, figurePos[1] - 1] },
+        ];
+
+        // В обычном состоянии это возможные ходы за черных
+        // с параметром reverse = true возможные ходы за белых
+        const possibleMovesReverse: MoveByPawn[] = [
+            // Первый ход
+            { typeMove: 'first', pos: [figurePos[0], figurePos[1] + 2] },
+            
+            // Обычный ход вперед
+            { typeMove: 'default', pos: [figurePos[0], figurePos[1] + 1] },
+
+            // Атака
+            { typeMove: 'attack', pos: [figurePos[0] - 1, figurePos[1] + 1] },
+
+            // Атака
+            { typeMove: 'attack', pos: [figurePos[0] + 1, figurePos[1] + 1] },
+        ];
+
+        // Если цвет пещки белый и доска не перевернута ИЛИ цвет пешки черный и доска перевернута => используем обычные ходы
+        // Иначе используем перевернутые ходы
+        const possibleMovesForColor = (pawnColor === 'white' && !revese) || 
+            (pawnColor === 'black' && revese) ? possibleMoves : possibleMovesReverse;
+
+        possibleMovesForColor.forEach((move) => {
+            GameService.checkPossiblePawnMoveToPos(state, figurePos, move, pawnColor, revese) &&
+                nextMoves.push(move.pos);
+        });
 
         return nextMoves;
     },
