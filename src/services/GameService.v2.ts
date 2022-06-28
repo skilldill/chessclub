@@ -29,7 +29,7 @@ export const GameService = {
                 break;
 
             case 'king':
-                // nextPositions = GameService.getNextMovesKing(state, [i, j]);
+                nextPositions = GameService.getNextMovesKing(state, [i, j]);
                 break;
         }
 
@@ -369,8 +369,24 @@ export const GameService = {
         return nextMoves;
     },
 
-    calcKingMoves: (state: Cell[][], figurePos: number[], onlyAttacks: boolean) => {
-        const kingColor = GameService.getFigureColor(state, figurePos);
+    /**
+     * Проверяет возможность короля пойти на клетку - цель 
+     * @param state состояние доски
+     * @param target позиция клетки - цель
+     */
+    checkPossibleKingMoveToPos: (state: Cell[][], kingPos: number[], target: number[]) => {
+        // TODO сделать проверку атакованных полей
+        return GameService.checkPossibleMoveTo(state, kingPos, target);
+    },
+
+    /**
+     * Возвращает возможные ходы для короля
+     * @param state состояние доски
+     * @param figurePos позиция короля
+     * @returns 
+     */
+    calcKingMoves: (state: Cell[][], figurePos: number[]) => {
+        const nextMoves: number[][] = [];
 
         const possibleMoves = [
             [figurePos[0], figurePos[1] - 1],
@@ -383,41 +399,9 @@ export const GameService = {
             [figurePos[0] - 1, figurePos[1] - 1],
         ]
 
-        if (onlyAttacks) {
-            // Для получения полей куда нельзя пойти вражескому королю
-            return possibleMoves;
-        }
-
-        const enemyCells: number[][] = [];
-
-        state.forEach((row, j) => {
-            row.forEach((cell, i) => {
-                if (!!cell.figure && cell.figure.color !== kingColor) {
-                    enemyCells.push([i, j]);
-                }
-            })
-        })
-
-        let attacksPositions: number[][] = [];
-
-        enemyCells.forEach((enemyCellPos) => {
-            const nextMoves = GameService.getNextMoves(state, enemyCellPos, false);
-            attacksPositions = [...attacksPositions, ...nextMoves];
-        })
-
-        const nextMoves: number[][] = [];
-
-        possibleMoves.forEach((possibleMove) => {
-            const found = attacksPositions.find((attcakPosition) => 
-                attcakPosition[0] === possibleMove[0] && 
-                attcakPosition[1] === possibleMove[1]
-            );
-
-            if (!found) {
-                // Если возможный ход короля не попадает под атаку
-                // То добавляем это поле в возможные следующие ходы
-                nextMoves.push(possibleMove);
-            }
+        possibleMoves.forEach((move) => {
+            GameService.checkPossibleKingMoveToPos(state, figurePos, move) &&
+                nextMoves.push(move);
         })
 
         return nextMoves;
@@ -448,6 +432,6 @@ export const GameService = {
     },
 
     getNextMovesKing: (state: Cell[][], figurePos: number[]) => {
-        // return GameService.calcKingMoves(state, figurePos);
+        return GameService.calcKingMoves(state, figurePos);
     },
 }
