@@ -363,6 +363,7 @@ export const GameService = {
         ]
 
         if (onlyAttacks) {
+            // Для получения полей куда нельзя пойти вражескому королю
             return possibleMoves;
         }
 
