@@ -280,29 +280,18 @@ export const GameService = {
     ) => {
         switch(target.typeMove) {
             case 'first':
-                // Если доска перевернута
-                if (reverse) {
-                    if (pawnColor === 'white') {
-                        return pos[1] === 1 && 
-                            !GameService.hasFigure(state, [target.pos[0], target.pos[1] - 1]) &&
-                            !GameService.hasFigure(state, target.pos);
-                    } else {
-                        return pos[1] === 6 && 
-                            !GameService.hasFigure(state, [target.pos[0], target.pos[1] + 1]) &&
-                            !GameService.hasFigure(state, target.pos);
-                    }
-                } 
-                
-                // Доска в обычном положении
-                if (pawnColor === 'white') {
-                    return pos[1] === 6 && 
-                        !GameService.hasFigure(state, [target.pos[0], target.pos[1] + 1]) &&
-                        !GameService.hasFigure(state, target.pos);
-                } else {
+                if (
+                    (pawnColor === 'white' && reverse) ||
+                    (pawnColor === 'black' && !reverse)
+                ) {
                     return pos[1] === 1 && 
                         !GameService.hasFigure(state, [target.pos[0], target.pos[1] - 1]) &&
                         !GameService.hasFigure(state, target.pos);
-                }
+                } 
+
+                return pos[1] === 6 && 
+                    !GameService.hasFigure(state, [target.pos[0], target.pos[1] + 1]) &&
+                    !GameService.hasFigure(state, target.pos);
 
             case 'default':
                 return !GameService.hasFigure(state, target.pos);
