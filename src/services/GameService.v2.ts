@@ -1,7 +1,7 @@
 import { Cell, FigureColor } from "models";
 
 export const GameService = {
-    getNextMoves: (state: Cell[][], [i, j]: number[], revese = false, onlyDefense = false): number[][] => {
+    getNextMoves: (state: Cell[][], [i, j]: number[], revese = false): number[][] => {
         const figure = state[j][i].figure!;
         const { type } = figure;
 
@@ -9,158 +9,179 @@ export const GameService = {
 
         switch(type) {
             case 'pawn':
-                nextPositions = GameService.getNextMovesPawn(state, [i, j], revese, onlyDefense);
+                nextPositions = GameService.getNextMovesPawn(state, [i, j], revese);
                 break;
             
             case 'bishop':
-                nextPositions = GameService.getNextMovesBishop(state, [i, j], onlyDefense);
+                nextPositions = GameService.getNextMovesBishop(state, [i, j]);
                 break;
 
             case 'knigts':
-                nextPositions = GameService.getNextMovesKnigts(state, [i, j], onlyDefense);
+                nextPositions = GameService.getNextMovesKnigts(state, [i, j]);
                 break;
 
             case 'rook':
-                nextPositions = GameService.getNextMovesRook(state, [i, j], onlyDefense);
+                nextPositions = GameService.getNextMovesRook(state, [i, j]);
                 break;
 
             case 'queen':
-                nextPositions = GameService.getNextMovesQueen(state, [i, j], onlyDefense);
+                nextPositions = GameService.getNextMovesQueen(state, [i, j]);
                 break;
 
             case 'king':
-                nextPositions = GameService.getNextMovesKing(state, [i, j], onlyDefense);
+                // nextPositions = GameService.getNextMovesKing(state, [i, j]);
                 break;
         }
 
         return nextPositions;
     },
     
+    /**
+     * Проверка на то что позиция находится в пределах доски
+     * @param state состояние доски
+     * @param pos проверяемая позиция
+     */
     checkInBorderBoard: (state: Cell[][], pos: number[]) => {
         return (pos[0] >= 0 && pos[0] < state.length) && (pos[1] >= 0 && pos[1] < state.length);
     },
 
+    /**
+     * Возвращает цвет фигуры
+     * @param state состояние доски
+     * @param pos позиция фигуры
+     */
     getFigureColor: (state: Cell[][], pos: number[]) => {
         return state[pos[1]][pos[0]].figure!.color;
     },
 
-    checkPossibleMoveTo: (state: Cell[][], color: FigureColor, target: number[], onlyDefense: boolean) => {
+    /**
+     * Проверка находится ли в указанной клетке вражеская фигура
+     * @param state состояние доски
+     * @param pos положение фигуры союзного цвета
+     * @param target положение фигуры - цели
+     */
+    checkEnemy: (state: Cell[][], pos: number[], target: number[]) => {
+        const color = GameService.getFigureColor(state, pos);
+        const targetColor = state[target[1]][target[0]].figure?.color;
+
+        return !!targetColor && targetColor !== color;
+    },
+
+    /**
+     * Проверка на то что фигура-цель вражеский король
+     * @param state состояние доски
+     * @param pos положение фигуры союзного цвета
+     * @param target положение фигуры - цели
+     */
+    chekEnemyKing: (state: Cell[][], pos: number[], target: number[]) => {
+        const isKing = state[target[1]][target[0]].figure?.type === 'king';
+
+        if (!isKing) return false;
+
+        return GameService.checkEnemy(state, pos, target);
+    },
+
+    /**
+     * Полная проверка возможности хода для фигур: pawn, knigt, bishop, rook, queen
+     * @param state состояния доски
+     * @param pos положение фигуры союзного цвета
+     * @param target позиция клетки - цели
+     * @returns 
+     */
+    checkPossibleMoveTo: (state: Cell[][], pos: number[], target: number[]) => {
+        // Если позиция находится за пределами доски, то сразу false
         return GameService.checkInBorderBoard(state, target) && (
+            // Если в клетке - цели нет фигуры 
             !state[target[1]][target[0]].figure || (
-                !!state[target[1]][target[0]].figure &&
-                state[target[1]][target[0]].figure?.color !== color &&
-                state[target[1]][target[0]].figure?.type !== 'king'
-            ) || (
-                // Не можем брать клетку с фигурой союзником для атаки
-                // Но можем добавить эту клетку для зашиты
-                onlyDefense && state[target[1]][target[0]].figure?.color === color
+                // ИЛИ Если есть фигура и эта фигура вражеская и не король
+                !!state[target[1]][target[0]].figure && 
+                GameService.checkEnemy(state, pos, target) && 
+                !GameService.chekEnemyKing(state, pos, target)
             )
         );
     },
 
-    checkEnemy: (state: Cell[][], color: FigureColor, target: number[]) => {
-        const targetColor = state[target[1]][target[0]].figure?.color;
-        return !!targetColor && targetColor !== color;
-    },
-
-    calcDiagonalMoves: (state: Cell[][], figurePos: number[], onlyDefense: boolean) => {
-        const figureColor = GameService.getFigureColor(state, figurePos);
+    /**
+     * Возвращает возможные позиция для движения по диагонали
+     * для Слона и Ферзя
+     * @param state состояние доски
+     * @param figurePos текущая позиция фигуры
+     */
+    calcDiagonalMoves: (state: Cell[][], figurePos: number[]) => {
         const nextMoves: number[][] = [];
 
         // Влево-вверх
         let nextMove = [figurePos[0] - 1, figurePos[1] - 1];
 
-        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove, onlyDefense)) {
+        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
-            nextMove = [nextMove[0] - 1, nextMove[1] - 1];
 
-            if (
-                onlyDefense && 
-                state[nextMove[1]][nextMove[0]].figure?.type === 'king' &&
-                GameService.checkEnemy(state, figureColor, nextMove)
-            ) {
-                continue;
-            }
-
-            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+            if (GameService.checkEnemy(state, figurePos, nextMove)) {
                 break;
             }
+
+            nextMove = [nextMove[0] - 1, nextMove[1] - 1];
         }
 
         // Вправо-вверх
         nextMove = [figurePos[0] + 1, figurePos[1] - 1];
 
-        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove, onlyDefense)) {
+        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
-            nextMove = [nextMove[0] + 1, nextMove[1] - 1];
-
-            if (
-                onlyDefense && 
-                state[nextMove[1]][nextMove[0]].figure?.type === 'king' &&
-                GameService.checkEnemy(state, figureColor, nextMove)
-            ) {
-                continue;
-            }
-
-            if (GameService.checkEnemy(state, figureColor, nextMove)) {
+            
+            if (GameService.checkEnemy(state, figurePos, nextMove)) {
                 break;
             }
+
+            nextMove = [nextMove[0] + 1, nextMove[1] - 1];
         }
 
         // Вправо-вниз
         nextMove = [figurePos[0] + 1, figurePos[1] + 1];
 
-        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove, onlyDefense)) {
+        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
-            nextMove = [nextMove[0] + 1, nextMove[1] + 1];
-
-            if (
-                onlyDefense && 
-                state[nextMove[1]][nextMove[0]].figure?.type === 'king' &&
-                GameService.checkEnemy(state, figureColor, nextMove)
-            ) {
-                continue;
-            }
-
-            if (GameService.checkEnemy(state, figureColor, nextMove) && !onlyDefense) {
+            
+            if (GameService.checkEnemy(state, figurePos, nextMove)) {
                 break;
             }
+
+            nextMove = [nextMove[0] + 1, nextMove[1] + 1];
         }
 
         // Вправо-вниз
         nextMove = [figurePos[0] - 1, figurePos[1] + 1];
 
-        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove, onlyDefense)) {
+        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
-            nextMove = [nextMove[0] - 1, nextMove[1] + 1];
-
-            if (
-                onlyDefense && 
-                state[nextMove[1]][nextMove[0]].figure?.type === 'king' &&
-                GameService.checkEnemy(state, figureColor, nextMove)
-            ) {
-                continue;
-            }
-
-            if (GameService.checkEnemy(state, figureColor, nextMove) && !onlyDefense) {
+            
+            if (GameService.checkEnemy(state, figurePos, nextMove)) {
                 break;
             }
+
+            nextMove = [nextMove[0] - 1, nextMove[1] + 1];
         }
 
         return nextMoves;
     },
 
-    calcHorizontalAndVerticalMoves: (state: Cell[][], figurePos: number[], onlyDefense: boolean) => {
-        const figureColor = GameService.getFigureColor(state, figurePos);
+    /**
+     * Возвращает возможные позиция для движения по горизонтали и вертикали
+     * для Ладьи и Ферзя
+     * @param state состяние доски
+     * @param figurePos 
+     * @returns 
+     */
+    calcHorizontalAndVerticalMoves: (state: Cell[][], figurePos: number[]) => {
         const nextMoves: number[][] = [];
 
         // Влево
         let nextMove = [figurePos[0] - 1, figurePos[1]];
 
-        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove, onlyDefense)) {
+        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
-            if (GameService.checkEnemy(state, figureColor, nextMove) && !onlyDefense) {
+            if (GameService.checkEnemy(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -170,10 +191,10 @@ export const GameService = {
         // Вверх
         nextMove = [figurePos[0], figurePos[1] - 1];
 
-        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove, onlyDefense)) {
+        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
-            if (GameService.checkEnemy(state, figureColor, nextMove) && !onlyDefense) {
+            if (GameService.checkEnemy(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -183,10 +204,10 @@ export const GameService = {
         // Вправо
         nextMove = [figurePos[0] + 1, figurePos[1]];
 
-        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove, onlyDefense)) {
+        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
-            if (GameService.checkEnemy(state, figureColor, nextMove) && !onlyDefense) {
+            if (GameService.checkEnemy(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -196,10 +217,10 @@ export const GameService = {
         // Вниз
         nextMove = [figurePos[0], figurePos[1] + 1];
 
-        while(GameService.checkPossibleMoveTo(state, figureColor, nextMove, onlyDefense)) {
+        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
-            if (GameService.checkEnemy(state, figureColor, nextMove) && !onlyDefense) {
+            if (GameService.checkEnemy(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -360,9 +381,14 @@ export const GameService = {
         return nextMoves;
     },
 
-    calcKnigtsMoves: (state: Cell[][], figurePos: number[], onlyDefense: boolean) => {
+    /**
+     * Возвращает возможные ходы для коня
+     * @param state состояние доски
+     * @param figurePos текущая позиция фигуры
+     * @returns 
+     */
+    calcKnigtsMoves: (state: Cell[][], figurePos: number[]) => {
         const nextMoves: number[][] = [];
-        const knigtColor = GameService.getFigureColor(state, figurePos);
 
         const possibleMoves: number[][] = [
             [figurePos[0] + 1, figurePos[1] - 2],
@@ -376,7 +402,7 @@ export const GameService = {
         ];
 
         possibleMoves.forEach((move) => {
-            if (GameService.checkPossibleMoveTo(state, knigtColor, move, onlyDefense)) {
+            if (GameService.checkPossibleMoveTo(state, figurePos, move)) {
                 nextMoves.push(move);
             }
         })
@@ -416,7 +442,7 @@ export const GameService = {
         let attacksPositions: number[][] = [];
 
         enemyCells.forEach((enemyCellPos) => {
-            const nextMoves = GameService.getNextMoves(state, enemyCellPos, false, true);
+            const nextMoves = GameService.getNextMoves(state, enemyCellPos, false);
             attacksPositions = [...attacksPositions, ...nextMoves];
         })
 
@@ -438,31 +464,31 @@ export const GameService = {
         return nextMoves;
     },
 
-    getNextMovesPawn: (state: Cell[][], figurePos: number[], reverse: boolean, onlyDefense: boolean) => {
-        return GameService.calcPawnMoves(state, figurePos, reverse, onlyDefense);
+    getNextMovesPawn: (state: Cell[][], figurePos: number[], reverse: boolean) => {
+        return GameService.calcPawnMoves(state, figurePos, reverse);
     },
 
-    getNextMovesBishop: (state: Cell[][], figurePos: number[], onlyDefense: boolean) => {
-        return GameService.calcDiagonalMoves(state, figurePos, onlyDefense);
+    getNextMovesBishop: (state: Cell[][], figurePos: number[]) => {
+        return GameService.calcDiagonalMoves(state, figurePos);
     },
 
-    getNextMovesKnigts: (state: Cell[][], figurePos: number[], onlyDefense: boolean) => {
-        return GameService.calcKnigtsMoves(state, figurePos, onlyDefense);
+    getNextMovesKnigts: (state: Cell[][], figurePos: number[]) => {
+        return GameService.calcKnigtsMoves(state, figurePos);
     },
 
-    getNextMovesRook: (state: Cell[][], figurePos: number[], onlyDefense: boolean) => {
-        return GameService.calcHorizontalAndVerticalMoves(state, figurePos, onlyDefense);
+    getNextMovesRook: (state: Cell[][], figurePos: number[]) => {
+        return GameService.calcHorizontalAndVerticalMoves(state, figurePos);
     },
 
-    getNextMovesQueen: (state: Cell[][], figurePos: number[], onlyDefense: boolean) => {
-        const diagonalMoves = GameService.calcDiagonalMoves(state, figurePos, onlyDefense);
-        const verticalAndHorizontalMoves = GameService.calcHorizontalAndVerticalMoves(state, figurePos, onlyDefense);
+    getNextMovesQueen: (state: Cell[][], figurePos: number[]) => {
+        const diagonalMoves = GameService.calcDiagonalMoves(state, figurePos);
+        const verticalAndHorizontalMoves = GameService.calcHorizontalAndVerticalMoves(state, figurePos);
         const moves = [...diagonalMoves, ...verticalAndHorizontalMoves];
         
         return moves;
     },
 
-    getNextMovesKing: (state: Cell[][], figurePos: number[], onlyAttacks: boolean) => {
-        return GameService.calcKingMoves(state, figurePos, onlyAttacks);
+    getNextMovesKing: (state: Cell[][], figurePos: number[]) => {
+        // return GameService.calcKingMoves(state, figurePos);
     },
 }

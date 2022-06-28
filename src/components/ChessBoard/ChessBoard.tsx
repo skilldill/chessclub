@@ -1,7 +1,7 @@
 import { Cell, Figure, FigureColor } from "models";
 import { MouseEvent, useCallback, useEffect } from "react";
 import { FC, useState } from "react";
-import { GameService } from "services";
+import { GameServiceV2 } from "services";
 import styles from './ChessBoard.module.css';
 import { getColorByCoords } from "./ChessBoard.utils";
 import cn from 'classnames';
@@ -61,7 +61,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
             setFromBoardPos(boardPos);
             document.body.style.cursor = 'grabbing';
     
-            const nextMoves = GameService.getNextMoves(cellsState, boardPos, reverse);
+            const nextMoves = GameServiceV2.getNextMoves(cellsState, boardPos, reverse);
             setNextMovesPositions(nextMoves);
         }
     }, [cellsState, currentColor, reverse])
