@@ -1,7 +1,7 @@
-import { Cell, FigureColor, MoveByPawn } from "models";
+import { Cell, FigureColor, MoveByPawn, OnCheckPossible } from "models";
 
-export const GameService = {
-    getNextMoves: (state: Cell[][], [i, j]: number[], revese = false): number[][] => {
+export class GameService {
+    static getNextMoves = (state: Cell[][], [i, j]: number[], revese = false): number[][] => {
         const figure = state[j][i].figure!;
         const { type } = figure;
 
@@ -34,25 +34,25 @@ export const GameService = {
         }
 
         return nextPositions;
-    },
+    }
     
     /**
      * Проверка на то что позиция находится в пределах доски
      * @param state состояние доски
      * @param pos проверяемая позиция
      */
-    checkInBorderBoard: (state: Cell[][], pos: number[]) => {
+    static checkInBorderBoard = (state: Cell[][], pos: number[]) => {
         return (pos[0] >= 0 && pos[0] < state.length) && (pos[1] >= 0 && pos[1] < state.length);
-    },
+    }
 
     /**
      * Возвращает цвет фигуры
      * @param state состояние доски
      * @param pos позиция фигуры
      */
-    getFigureColor: (state: Cell[][], pos: number[]) => {
+    static getFigureColor = (state: Cell[][], pos: number[]) => {
         return state[pos[1]][pos[0]].figure!.color;
-    },
+    }
 
     /**
      * Проверка находится ли в указанной клетке вражеская фигура
@@ -60,12 +60,12 @@ export const GameService = {
      * @param pos положение фигуры союзного цвета
      * @param target положение фигуры - цели
      */
-    checkEnemy: (state: Cell[][], pos: number[], target: number[]) => {
+    static checkEnemy = (state: Cell[][], pos: number[], target: number[]) => {
         const color = GameService.getFigureColor(state, pos);
         const targetColor = state[target[1]][target[0]].figure?.color;
 
         return !!targetColor && targetColor !== color;
-    },
+    }
 
     /**
      * Проверка на то что фигура-цель вражеский король
@@ -73,17 +73,39 @@ export const GameService = {
      * @param pos положение фигуры союзного цвета
      * @param target положение фигуры - цели
      */
-    chekEnemyKing: (state: Cell[][], pos: number[], target: number[]) => {
+    static chekEnemyKing = (state: Cell[][], pos: number[], target: number[]) => {
         const isKing = state[target[1]][target[0]].figure?.type === 'king';
 
         if (!isKing) return false;
 
         return GameService.checkEnemy(state, pos, target);
-    },
+    }
 
-    hasFigure: (state: Cell[][], pos: number[]) => {
+    /**
+     * Возвращает есть ли фигура в указаной позиции
+     * @param state состояние доски
+     * @param pos проверяемая позиция
+     * @returns 
+     */
+    static hasFigure = (state: Cell[][], pos: number[]) => {
         return !!state[pos[1]][pos[0]].figure;
-    },
+    }
+
+    /**
+     * Возвращает все клетки с вражескими фигурами
+     * @param state состояние доски
+     * @param pos позиция союзной фигуры
+     */
+    static getAllEnemysPositions = (state: Cell[][], pos: number[]) => {
+        const enemysPos: number[][] = [];
+
+        state.forEach((row, j) => row.forEach((_, i) => {
+            GameService.checkEnemy(state, pos, [i, j]) &&
+                enemysPos.push([i, j]);
+        }))
+
+        return enemysPos;
+    }
 
     /**
      * Полная проверка возможности хода для фигур: pawn, knigt, bishop, rook, queen
@@ -92,18 +114,36 @@ export const GameService = {
      * @param target позиция клетки - цели
      * @returns 
      */
-    checkPossibleMoveTo: (state: Cell[][], pos: number[], target: number[]) => {
+    static checkPossibleMoveTo = (state: Cell[][], pos: number[], target: number[]) => {
         // Если позиция находится за пределами доски, то сразу false
         return GameService.checkInBorderBoard(state, target) && (
             // Если в клетке - цели нет фигуры 
-            !state[target[1]][target[0]].figure || (
+            !GameService.hasFigure(state, target) || (
                 // ИЛИ Если есть фигура и эта фигура вражеская и не король
                 GameService.hasFigure(state, target) && 
                 GameService.checkEnemy(state, pos, target) && 
                 !GameService.chekEnemyKing(state, pos, target)
             )
         );
-    },
+    }
+
+    /**
+     * Проверка находится ли поле под атакой вражеской фигуры 
+     * (Используется для расчета возможных ходов для короля)
+     * @param state состояние доски
+     * @param pos позиция фигуры
+     * @param target проверяемая клетка
+     */
+    static checkAttackedCell = (state: Cell[][], pos: number[], target: number[]) => {
+        // Если позиция находится за пределами доски, то сразу false
+        return GameService.checkInBorderBoard(state, target) && (
+            // Если в клетке - цели нет фигуры 
+            !GameService.hasFigure(state, target) || (
+                // ИЛИ Если есть фигура и эта фигура союзник
+                GameService.hasFigure(state, target) && !GameService.checkEnemy(state, pos, target)
+            )
+        );
+    }
 
     /**
      * Возвращает возможные позиция для движения по диагонали
@@ -111,13 +151,17 @@ export const GameService = {
      * @param state состояние доски
      * @param figurePos текущая позиция фигуры
      */
-    calcDiagonalMoves: (state: Cell[][], figurePos: number[]) => {
+    static calcDiagonalMoves = (
+        state: Cell[][], 
+        figurePos: number[], 
+        onCheckPossible: OnCheckPossible = GameService.checkPossibleMoveTo
+    ) => {
         const nextMoves: number[][] = [];
 
         // Влево-вверх
         let nextMove = [figurePos[0] - 1, figurePos[1] - 1];
 
-        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
+        while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
             if (GameService.checkEnemy(state, figurePos, nextMove)) {
@@ -130,7 +174,7 @@ export const GameService = {
         // Вправо-вверх
         nextMove = [figurePos[0] + 1, figurePos[1] - 1];
 
-        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
+        while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
             
             if (GameService.checkEnemy(state, figurePos, nextMove)) {
@@ -143,7 +187,7 @@ export const GameService = {
         // Вправо-вниз
         nextMove = [figurePos[0] + 1, figurePos[1] + 1];
 
-        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
+        while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
             
             if (GameService.checkEnemy(state, figurePos, nextMove)) {
@@ -156,7 +200,7 @@ export const GameService = {
         // Вправо-вниз
         nextMove = [figurePos[0] - 1, figurePos[1] + 1];
 
-        while(GameService.checkPossibleMoveTo(state, figurePos, nextMove)) {
+        while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
             
             if (GameService.checkEnemy(state, figurePos, nextMove)) {
@@ -167,7 +211,7 @@ export const GameService = {
         }
 
         return nextMoves;
-    },
+    }
 
     /**
      * Возвращает возможные позиция для движения по горизонтали и вертикали
@@ -176,7 +220,7 @@ export const GameService = {
      * @param figurePos 
      * @returns 
      */
-    calcHorizontalAndVerticalMoves: (state: Cell[][], figurePos: number[]) => {
+    static calcHorizontalAndVerticalMoves = (state: Cell[][], figurePos: number[]) => {
         const nextMoves: number[][] = [];
 
         // Влево
@@ -232,7 +276,7 @@ export const GameService = {
         }
 
         return nextMoves;
-    },
+    }
 
     /**
     * Возвращает возможные ходы для коня
@@ -240,7 +284,7 @@ export const GameService = {
     * @param figurePos текущая позиция фигуры
     * @returns 
     */
-    calcKnigtsMoves: (state: Cell[][], figurePos: number[]) => {
+    static calcKnigtsMoves = (state: Cell[][], figurePos: number[]) => {
         const nextMoves: number[][] = [];
 
         const possibleMoves: number[][] = [
@@ -261,7 +305,7 @@ export const GameService = {
         })
 
         return nextMoves;
-    },
+    }
 
     /**
      * Проверяет возможность пешки пойти на клетку - цель
@@ -271,7 +315,7 @@ export const GameService = {
      * @param pawnColor цвет пешки вычисленный заранее
      * @param reverse перевернута ли доска
      */
-    checkPossiblePawnMoveToPos: (
+    static checkPossiblePawnMoveToPos = (
         state: Cell[][], 
         pos: number[], 
         target: MoveByPawn, 
@@ -289,7 +333,7 @@ export const GameService = {
                         !GameService.hasFigure(state, target.pos);
                 } 
 
-                return pos[1] === 6 && 
+                return pos[1] === state.length - 2 && 
                     !GameService.hasFigure(state, [target.pos[0], target.pos[1] + 1]) &&
                     !GameService.hasFigure(state, target.pos);
 
@@ -302,7 +346,7 @@ export const GameService = {
                     GameService.checkEnemy(state, pos, target.pos) &&
                     !GameService.chekEnemyKing(state, pos, target.pos)
         }
-    },
+    }
 
     /**
      * Возвращает возможные позиции для пешки
@@ -311,7 +355,7 @@ export const GameService = {
      * @param revese перевернута ли доска
      * @returns 
      */
-    calcPawnMoves: (state: Cell[][], figurePos: number[], revese: boolean) => {
+    static calcPawnMoves = (state: Cell[][], figurePos: number[], revese: boolean) => {
         const pawnColor = GameService.getFigureColor(state, figurePos);
         const nextMoves: number[][] = [];
 
@@ -357,17 +401,17 @@ export const GameService = {
         });
 
         return nextMoves;
-    },
+    }
 
     /**
      * Проверяет возможность короля пойти на клетку - цель 
      * @param state состояние доски
      * @param target позиция клетки - цель
      */
-    checkPossibleKingMoveToPos: (state: Cell[][], kingPos: number[], target: number[]) => {
+    static checkPossibleKingMoveToPos = (state: Cell[][], kingPos: number[], target: number[]) => {
         // TODO сделать проверку атакованных полей
         return GameService.checkPossibleMoveTo(state, kingPos, target);
-    },
+    }
 
     /**
      * Возвращает возможные ходы для короля
@@ -375,7 +419,7 @@ export const GameService = {
      * @param figurePos позиция короля
      * @returns 
      */
-    calcKingMoves: (state: Cell[][], figurePos: number[]) => {
+    static calcKingMoves = (state: Cell[][], figurePos: number[]) => {
         const nextMoves: number[][] = [];
 
         const possibleMoves = [
@@ -392,36 +436,39 @@ export const GameService = {
         possibleMoves.forEach((move) => {
             GameService.checkPossibleKingMoveToPos(state, figurePos, move) &&
                 nextMoves.push(move);
-        })
+        });
+
+        const enemysPos = GameService.getAllEnemysPositions(state, figurePos);
+
 
         return nextMoves;
-    },
+    }
 
-    getNextMovesPawn: (state: Cell[][], figurePos: number[], reverse: boolean) => {
+    static getNextMovesPawn = (state: Cell[][], figurePos: number[], reverse: boolean) => {
         return GameService.calcPawnMoves(state, figurePos, reverse);
-    },
+    }
 
-    getNextMovesBishop: (state: Cell[][], figurePos: number[]) => {
+    static getNextMovesBishop = (state: Cell[][], figurePos: number[]) => {
         return GameService.calcDiagonalMoves(state, figurePos);
-    },
+    }
 
-    getNextMovesKnigts: (state: Cell[][], figurePos: number[]) => {
+    static getNextMovesKnigts = (state: Cell[][], figurePos: number[]) => {
         return GameService.calcKnigtsMoves(state, figurePos);
-    },
+    }
 
-    getNextMovesRook: (state: Cell[][], figurePos: number[]) => {
+    static getNextMovesRook = (state: Cell[][], figurePos: number[]) => {
         return GameService.calcHorizontalAndVerticalMoves(state, figurePos);
-    },
+    }
 
-    getNextMovesQueen: (state: Cell[][], figurePos: number[]) => {
+    static getNextMovesQueen = (state: Cell[][], figurePos: number[]) => {
         const diagonalMoves = GameService.calcDiagonalMoves(state, figurePos);
         const verticalAndHorizontalMoves = GameService.calcHorizontalAndVerticalMoves(state, figurePos);
         const moves = [...diagonalMoves, ...verticalAndHorizontalMoves];
         
         return moves;
-    },
+    }
 
-    getNextMovesKing: (state: Cell[][], figurePos: number[]) => {
+    static getNextMovesKing = (state: Cell[][], figurePos: number[]) => {
         return GameService.calcKingMoves(state, figurePos);
-    },
+    }
 }
