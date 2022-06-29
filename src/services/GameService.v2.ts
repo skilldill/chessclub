@@ -68,6 +68,19 @@ export class GameService {
     }
 
     /**
+     * Проверка находится ли в указанной клетке союзная фигура
+     * @param state состояние доски
+     * @param pos положение фигуры союзного цвета
+     * @param target положение фигуры - цели
+     */
+     static checkTeammate = (state: Cell[][], pos: number[], target: number[]) => {
+        const color = GameService.getFigureColor(state, pos);
+        const targetColor = state[target[1]][target[0]].figure?.color;
+
+        return !!targetColor && targetColor === color;
+    }
+
+    /**
      * Проверка на то что фигура-цель вражеский король
      * @param state состояние доски
      * @param pos положение фигуры союзного цвета
@@ -136,13 +149,7 @@ export class GameService {
      */
     static checkAttackedCell = (state: Cell[][], pos: number[], target: number[]) => {
         // Если позиция находится за пределами доски, то сразу false
-        return GameService.checkInBorderBoard(state, target) && (
-            // Если в клетке - цели нет фигуры 
-            !GameService.hasFigure(state, target) || (
-                // ИЛИ Если есть фигура и эта фигура союзник
-                GameService.hasFigure(state, target) && !GameService.checkEnemy(state, pos, target)
-            )
-        );
+        return GameService.checkInBorderBoard(state, target);
     }
 
     /**
@@ -189,7 +196,8 @@ export class GameService {
                     const bishopAttackedPos = GameService.calcDiagonalMoves(
                         state, 
                         [i, j], 
-                        GameService.checkAttackedCell
+                        GameService.checkAttackedCell,
+                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.chekEnemyKing(state, [i, j], targetPos)
                     );
                     
                     attackedPositions = [...attackedPositions, ...bishopAttackedPos];
@@ -209,7 +217,8 @@ export class GameService {
                     const rookAttackedPos = GameService.calcHorizontalAndVerticalMoves(
                         state, 
                         [i, j], 
-                        GameService.checkAttackedCell
+                        GameService.checkAttackedCell,
+                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.chekEnemyKing(state, [i, j], targetPos)
                     );
                     
                     attackedPositions = [...attackedPositions, ...rookAttackedPos];
@@ -219,13 +228,15 @@ export class GameService {
                     const queenAttachedPosD = GameService.calcDiagonalMoves(
                         state, 
                         [i, j], 
-                        GameService.checkAttackedCell
+                        GameService.checkAttackedCell,
+                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.chekEnemyKing(state, [i, j], targetPos)
                     );
 
                     const queenAttachedPosVH = GameService.calcHorizontalAndVerticalMoves(
                         state, 
                         [i, j], 
-                        GameService.checkAttackedCell
+                        GameService.checkAttackedCell,
+                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.chekEnemyKing(state, [i, j], targetPos)
                     );
 
                     attackedPositions = [...attackedPositions, ...queenAttachedPosD, ...queenAttachedPosVH];
@@ -251,7 +262,8 @@ export class GameService {
     static calcDiagonalMoves = (
         state: Cell[][], 
         figurePos: number[], 
-        onCheckPossible: OnCheckPossible = GameService.checkPossibleMoveTo
+        onCheckPossible: OnCheckPossible = GameService.checkPossibleMoveTo,
+        onCheckFigureInCell: OnCheckPossible = GameService.checkEnemy
     ) => {
         const nextMoves: number[][] = [];
 
@@ -261,7 +273,7 @@ export class GameService {
         while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
-            if (GameService.checkEnemy(state, figurePos, nextMove)) {
+            if (onCheckFigureInCell(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -274,20 +286,20 @@ export class GameService {
         while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
             
-            if (GameService.checkEnemy(state, figurePos, nextMove)) {
+            if (onCheckFigureInCell(state, figurePos, nextMove)) {
                 break;
             }
 
             nextMove = [nextMove[0] + 1, nextMove[1] - 1];
         }
 
-        // Вправо-вниз
+        // Влево-вниз
         nextMove = [figurePos[0] + 1, figurePos[1] + 1];
 
         while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
             
-            if (GameService.checkEnemy(state, figurePos, nextMove)) {
+            if (onCheckFigureInCell(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -300,7 +312,7 @@ export class GameService {
         while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
             
-            if (GameService.checkEnemy(state, figurePos, nextMove)) {
+            if (onCheckFigureInCell(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -320,7 +332,8 @@ export class GameService {
     static calcHorizontalAndVerticalMoves = (
         state: Cell[][], 
         figurePos: number[],
-        onCheckPossible: OnCheckPossible = GameService.checkPossibleMoveTo
+        onCheckPossible: OnCheckPossible = GameService.checkPossibleMoveTo,
+        onCheckFigureInCell: OnCheckPossible = GameService.checkEnemy
     ) => {
         const nextMoves: number[][] = [];
 
@@ -330,7 +343,7 @@ export class GameService {
         while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
-            if (GameService.checkEnemy(state, figurePos, nextMove)) {
+            if (onCheckFigureInCell(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -343,7 +356,7 @@ export class GameService {
         while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
-            if (GameService.checkEnemy(state, figurePos, nextMove)) {
+            if (onCheckFigureInCell(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -356,7 +369,7 @@ export class GameService {
         while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
-            if (GameService.checkEnemy(state, figurePos, nextMove)) {
+            if (onCheckFigureInCell(state, figurePos, nextMove)) {
                 break;
             }
 
@@ -369,7 +382,7 @@ export class GameService {
         while(onCheckPossible(state, figurePos, nextMove)) {
             nextMoves.push([...nextMove]);
 
-            if (GameService.checkEnemy(state, figurePos, nextMove)) {
+            if (onCheckFigureInCell(state, figurePos, nextMove)) {
                 break;
             }
 
