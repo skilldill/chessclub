@@ -165,10 +165,11 @@ export class GameService {
         target: MoveByPawn,
     ) => {
         switch(target.typeMove) {
+            case 'default':
+            case 'first':
+                return false;
             case 'attack':
-                return GameService.checkInBorderBoard(state, target.pos) && 
-                    GameService.hasFigure(state, target.pos) && 
-                    !GameService.checkEnemy(state, pos, target.pos)
+                return GameService.checkInBorderBoard(state, target.pos);
         }
     }
 

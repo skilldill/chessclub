@@ -87,7 +87,7 @@ export const INITIAL_CELLS_TEST: Cell[][] = [
     [
         { figure: { type: 'rook', color: 'black' } },
         { figure: { type: 'king', color: 'black' } },
-        { figure: { type: 'bishop', color: 'black' } },
+        { figure: { type: 'knigts', color: 'black' } },
         { figure: undefined },
         { figure: undefined },
         { figure: undefined },
