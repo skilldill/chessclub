@@ -8,3 +8,6 @@ export interface MoveByPawn {
 }
 
 export type OnCheckPossible = (state: Cell[][], figurePos: number[], targetPos: number[]) => boolean;
+
+export type DiagonalDirections = 'top-right' | 'bottom-right' | 'bottom-left' | 'top-left';
+export type VerticalAndHorizontalDirections = 'top' | 'right' | 'bottom' | 'left';
