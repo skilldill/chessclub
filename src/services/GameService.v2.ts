@@ -1,4 +1,7 @@
-import { Cell, FigureColor, MoveByPawn, OnCheckPossible } from "models";
+import { Cell, FigureColor, MoveByPawn, MoveDirection, OnCheckPossible } from "models";
+
+const DIRECTIONS_D: MoveDirection[] = ['top-right', 'bottom-right', 'bottom-left', 'top-left'];
+const DIRECTIONS_VH: MoveDirection[] = ['top', 'right', 'bottom', 'left'];
 
 export class GameService {
     static getNextMoves = (state: Cell[][], [i, j]: number[], revese = false): number[][] => {
@@ -9,23 +12,28 @@ export class GameService {
 
         switch(type) {
             case 'pawn':
-                nextPositions = GameService.getNextMovesPawn(state, [i, j], revese);
+                const pawnPossibleMoves = GameService.getNextMovesPawn(state, [i, j], revese);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], pawnPossibleMoves);
                 break;
             
             case 'bishop':
-                nextPositions = GameService.getNextMovesBishop(state, [i, j]);
+                const bishopPossibleMoves = GameService.getNextMovesBishop(state, [i, j]);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], bishopPossibleMoves);
                 break;
 
             case 'knigts':
-                nextPositions = GameService.getNextMovesKnigts(state, [i, j]);
+                const knigtPossibleMoves = GameService.getNextMovesKnigts(state, [i, j]);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], knigtPossibleMoves);
                 break;
 
             case 'rook':
-                nextPositions = GameService.getNextMovesRook(state, [i, j]);
+                const rookPossibleMovese = GameService.getNextMovesRook(state, [i, j]);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], rookPossibleMovese);
                 break;
 
             case 'queen':
-                nextPositions = GameService.getNextMovesQueen(state, [i, j]);
+                const queenPossibleMoves = GameService.getNextMovesQueen(state, [i, j]);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], queenPossibleMoves);
                 break;
 
             case 'king':
@@ -105,6 +113,29 @@ export class GameService {
     }
 
     /**
+     * Проверяет дальнобойная ли фигура 
+     * слон, ладья или ферзь
+     * @param state состояние доски
+     * @param figurePos позиция фигуры
+     */
+    static checkFigureIsLongRange = (state: Cell[][], figurePos: number[]) => {
+        const { figure } = state[figurePos[1]][figurePos[0]];
+        return figure?.type === 'bishop' || figure?.type === 'rook' || figure?.type === 'queen';
+    }
+
+    static getCountEnemys = (state: Cell[][], figurePos: number[], positions: number[][]) => {
+        let count = 0;
+
+        positions.forEach((pos) => {
+            if (GameService.checkEnemy(state, figurePos, pos) && !GameService.checkEnemyKing(state, figurePos, pos)) {
+                count += 1;
+            }
+        })
+
+        return count;
+    }
+
+    /**
      * Возвращает позицию союзного короля
      * @param state состояние доски
      * @param figurePos позиция фигуры
@@ -172,6 +203,22 @@ export class GameService {
     }
 
     /**
+     * Прооверяет возможность атаки клетки
+     * Если в клетке вражеская фигура, считает ее атакованной
+     * Необходима для проверки нахождения вражеского короля за атакованной фигурой
+     * @param state состояние доски
+     * @param figurePos позиция фигураы
+     * @param target клетака под атакой
+     */
+    static checkPossibleAttackTo = (state: Cell[][], figurePos: number[], target: number[]) => {
+        // Если позиция находится за пределами доски, то сразу false
+        return GameService.checkInBorderBoard(state, target) && (
+            !GameService.hasFigure(state, target) ||
+            GameService.checkEnemy(state, figurePos, target)
+        );
+    }
+
+    /**
      * Проверка находится ли поле под атакой вражеской фигуры 
      * (Используется для расчета возможных ходов для короля)
      * @param state состояние доски
@@ -204,7 +251,7 @@ export class GameService {
         }
     }
 
-    /**
+    /** TODO НУЖНО УЧЕСТЬ ЧТО МОЖЕТ БЫТЬ НЕСКОЛЬКО ФИГУР ПЕРЕД КОРОЛЕМ
      * Корректирует возможные ходы фигуры в зависимости от того находится ли
      * фигура под атакой и стоит ли на линии атаки король за фигурой
      * @param state состояние доски
@@ -212,7 +259,233 @@ export class GameService {
      * @param possibleMoves возможные ходы фигуры
      */
     static correctionPossibleMoves = (state: Cell[][], figurePos: number[], possibleMoves: number[][]) => {
+        const kingPos = GameService.getTeammateKingPos(state, figurePos)!;
+
+        const enemysPos = GameService.getAllEnemysPositions(state, figurePos);
+
+        // Находим все дальнобойные фигуры противника, 
+        // так как только они могут атаковать на протяженной дистанции
+        const longrangeEnemysPos = enemysPos.filter((pos) => GameService.checkFigureIsLongRange(state, pos));
         
+        const correctedPossibleMoves: number[][] = [];
+
+        let kingBehidFigure = false;
+
+        longrangeEnemysPos.forEach((enemyPos) => {
+            const enemyType = state[enemyPos[1]][enemyPos[0]].figure!.type;
+
+            switch(enemyType) {
+                case 'bishop':
+                    DIRECTIONS_D.forEach((direction) => {
+                        if (!kingBehidFigure) {
+                            const attackedLine = GameService.getFullAttackedLine(state, enemyPos, direction);
+    
+                            // Ищем индекс позиции короля
+                            const foundIndexKingPos = attackedLine.findIndex((pos) => pos[0] === kingPos[0] && pos[1] === kingPos[1]);
+    
+                            // Ищем позицию фигуры на линии атаки
+                            const foundIndexFigurePos = attackedLine.findIndex((pos) => pos[0] === figurePos[0] && pos[1] === figurePos[1]);
+                            
+                            const countFiguresBehindKing = GameService.getCountEnemys(state, enemyPos, attackedLine);
+
+                            // Если индексы найдены и индекс короля больше чем индекс фигуры на линии атаки
+                            // то корректируем возможные движения фигуры
+                            kingBehidFigure = foundIndexKingPos > -1 && foundIndexFigurePos > -1 && foundIndexKingPos > foundIndexFigurePos && countFiguresBehindKing === 1;
+
+                            if (kingBehidFigure) {    
+                                // Оставляем только те позиции которые есть и в possibleMoves и в attackedLine
+                                possibleMoves.forEach((possibleMove) => {
+                                    attackedLine.forEach((attackedPos) => {
+                                        if (attackedPos[0] === possibleMove[0] && attackedPos[1] === possibleMove[1]) {
+                                            correctedPossibleMoves.push(possibleMove);
+                                        }
+                                    })
+                                })
+                            }
+                        }
+                    });
+
+                    break;
+
+                case 'rook':
+                    if (kingBehidFigure) {
+                        break;
+                    }
+
+                    DIRECTIONS_VH.forEach((direction) => {
+                        if (!kingBehidFigure) {
+                            const attackedLine = GameService.getFullAttackedLine(state, enemyPos, direction);
+
+                            // Ищем индекс позиции короля
+                            const foundIndexKingPos = attackedLine.findIndex((pos) => pos[0] === kingPos[0] && pos[1] === kingPos[1]);
+    
+                            // Ищем позицию фигуры на линии атаки
+                            const foundIndexFigurePos = attackedLine.findIndex((pos) => pos[0] === figurePos[0] && pos[1] === figurePos[1]);
+                            
+                            const countFiguresBehindKing = GameService.getCountEnemys(state, enemyPos, attackedLine);
+
+                            // Если индексы найдены и индекс короля больше чем индекс фигуры на линии атаки
+                            // то корректируем возможные движения фигуры
+                            kingBehidFigure = foundIndexKingPos > -1 && foundIndexFigurePos > -1 && foundIndexKingPos > foundIndexFigurePos && countFiguresBehindKing === 1;
+
+                            if (kingBehidFigure) {
+                                // Оставляем только те позиции которые есть и в possibleMoves и в attackedLine
+                                possibleMoves.forEach((possibleMove) => {
+                                    attackedLine.forEach((attackedPos) => {
+                                        if (attackedPos[0] === possibleMove[0] && attackedPos[1] === possibleMove[1]) {
+                                            correctedPossibleMoves.push(possibleMove);
+                                        }
+                                    })
+                                })
+                            }
+                        }
+                    });
+
+                    break;
+
+                case 'queen':
+                    if (kingBehidFigure) {
+                        break;
+                    }
+
+                    [...DIRECTIONS_D, ...DIRECTIONS_VH].forEach((direction) => {
+                        if (!kingBehidFigure) {
+                            const attackedLine = GameService.getFullAttackedLine(state, enemyPos, direction);
+
+                            // Ищем индекс позиции короля
+                            const foundIndexKingPos = attackedLine.findIndex((pos) => pos[0] === kingPos[0] && pos[1] === kingPos[1]);
+    
+                            // Ищем позицию фигуры на линии атаки
+                            const foundIndexFigurePos = attackedLine.findIndex((pos) => pos[0] === figurePos[0] && pos[1] === figurePos[1]);
+                            
+                            const countFiguresBehindKing = GameService.getCountEnemys(state, enemyPos, attackedLine);
+
+                            // Если индексы найдены и индекс короля больше чем индекс фигуры на линии атаки
+                            // то корректируем возможные движения фигуры
+                            kingBehidFigure = foundIndexKingPos > -1 && foundIndexFigurePos > -1 && foundIndexKingPos > foundIndexFigurePos && countFiguresBehindKing === 1;
+                            
+                            if (kingBehidFigure) {
+                                // Оставляем только те позиции которые есть и в possibleMoves и в attackedLine
+                                possibleMoves.forEach((possibleMove) => {
+                                    attackedLine.forEach((attackedPos) => {
+                                        if (attackedPos[0] === possibleMove[0] && attackedPos[1] === possibleMove[1]) {
+                                            correctedPossibleMoves.push(possibleMove);
+                                        }
+                                    })
+                                })
+                            }
+                        }
+                    });
+
+                    break;
+            }
+        })
+
+        if (!kingBehidFigure)
+            return possibleMoves;
+
+        return correctedPossibleMoves;
+    }
+
+    /**
+     * Возвращает всю атакованную линию дальнобойной фигурой
+     * @param state состояние доски
+     * @param figurePos позиция фигуры
+     * @param direction направление атаки
+     */
+    static getFullAttackedLine = (
+        state: Cell[][], 
+        figurePos: number[], 
+        direction: MoveDirection
+    ) => {
+        let nextMove: number[];
+
+        const attackedPositions: number[][] = [];
+
+        switch(direction) {
+            case 'top-right':
+                nextMove = [figurePos[0] + 1, figurePos[1] - 1];
+    
+                while (GameService.checkPossibleAttackTo(state, figurePos, nextMove)) {
+                    attackedPositions.push(nextMove);
+                    nextMove = [nextMove[0] + 1, nextMove[1] - 1];
+                }
+
+                break;
+
+    
+            case 'bottom-right':
+                nextMove = [figurePos[0] + 1, figurePos[1] + 1];
+    
+                while (GameService.checkPossibleAttackTo(state, figurePos, nextMove)) {
+                    attackedPositions.push(nextMove);
+                    nextMove = [nextMove[0] + 1, nextMove[1] + 1];
+                }
+
+                break;
+    
+            case 'bottom-left':
+                nextMove = [figurePos[0] - 1, figurePos[1] + 1];
+    
+                while (GameService.checkPossibleAttackTo(state, figurePos, nextMove)) {
+                    attackedPositions.push(nextMove);
+                    nextMove = [nextMove[0] - 1, nextMove[1] + 1];
+                }
+
+                break;
+
+            case 'top-left':
+                nextMove = [figurePos[0] - 1, figurePos[1] - 1];
+    
+                while (GameService.checkPossibleAttackTo(state, figurePos, nextMove)) {
+                    attackedPositions.push(nextMove);
+                    nextMove = [nextMove[0] - 1, nextMove[1] - 1];
+                }
+
+                break;
+    
+            case 'top':
+                nextMove = [figurePos[0], figurePos[1] - 1];
+    
+                while (GameService.checkPossibleAttackTo(state, figurePos, nextMove)) {
+                    attackedPositions.push(nextMove);
+                    nextMove = [nextMove[0], nextMove[1] - 1];
+                }
+
+                break
+    
+            case 'right':
+                nextMove = [figurePos[0] + 1, figurePos[1]];
+    
+                while (GameService.checkPossibleAttackTo(state, figurePos, nextMove)) {
+                    attackedPositions.push(nextMove);
+                    nextMove = [nextMove[0] + 1, nextMove[1]];
+                }
+
+                break;
+    
+            case 'bottom':
+                nextMove = [figurePos[0], figurePos[1] + 1];
+    
+                while (GameService.checkPossibleAttackTo(state, figurePos, nextMove)) {
+                    attackedPositions.push(nextMove);
+                    nextMove = [nextMove[0], nextMove[1] + 1];
+                }
+                
+                break;
+    
+            case 'left':
+                nextMove = [figurePos[0] - 1, figurePos[1]];
+    
+                while (GameService.checkPossibleAttackTo(state, figurePos, nextMove)) {
+                    attackedPositions.push(nextMove);
+                    nextMove = [nextMove[0] - 1, nextMove[1]];
+                }
+
+                break;
+        }
+
+        return attackedPositions;
     }
 
     /**
