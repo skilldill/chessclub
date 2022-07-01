@@ -301,6 +301,7 @@ export class GameService {
                             if (kingBehidFigure) {    
                                 // Оставляем только те позиции которые есть и в possibleMoves и в attackedLine
                                 possibleMoves.forEach((possibleMove) => {
+                                    // Включаем позиции атакующей фигуры так как ее можно съесть
                                     [...attackedLine, enemyPos].forEach((attackedPos) => {
                                         if (attackedPos[0] === possibleMove[0] && attackedPos[1] === possibleMove[1]) {
                                             correctedPossibleMoves.push(possibleMove);
@@ -337,6 +338,7 @@ export class GameService {
                             if (kingBehidFigure) {
                                 // Оставляем только те позиции которые есть и в possibleMoves и в attackedLine
                                 possibleMoves.forEach((possibleMove) => {
+                                    // Включаем позиции атакующей фигуры так как ее можно съесть
                                     [...attackedLine, enemyPos].forEach((attackedPos) => {
                                         if (attackedPos[0] === possibleMove[0] && attackedPos[1] === possibleMove[1]) {
                                             correctedPossibleMoves.push(possibleMove);
@@ -373,6 +375,7 @@ export class GameService {
                             if (kingBehidFigure) {
                                 // Оставляем только те позиции которые есть и в possibleMoves и в attackedLine
                                 possibleMoves.forEach((possibleMove) => {
+                                    // Включаем позиции атакующей фигуры так как ее можно съесть
                                     [...attackedLine, enemyPos].forEach((attackedPos) => {
                                         if (attackedPos[0] === possibleMove[0] && attackedPos[1] === possibleMove[1]) {
                                             correctedPossibleMoves.push(possibleMove);
