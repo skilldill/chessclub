@@ -123,6 +123,12 @@ export class GameService {
         return figure?.type === 'bishop' || figure?.type === 'rook' || figure?.type === 'queen';
     }
 
+    /**
+     * Возвращает количество вражеских которые можно атаковать (кроме короля) фигур из массива позиций
+     * @param state состояние доски
+     * @param figurePos позиция фигуры
+     * @param positions проверяемые позиции
+     */
     static getCountEnemys = (state: Cell[][], figurePos: number[], positions: number[][]) => {
         let count = 0;
 
