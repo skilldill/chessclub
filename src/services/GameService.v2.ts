@@ -86,7 +86,7 @@ export class GameService {
      * @param pos положение фигуры союзного цвета
      * @param target положение фигуры - цели
      */
-    static chekEnemyKing = (state: Cell[][], pos: number[], target: number[]) => {
+    static checkEnemyKing = (state: Cell[][], pos: number[], target: number[]) => {
         const isKing = state[target[1]][target[0]].figure?.type === 'king';
 
         if (!isKing) return false;
@@ -102,6 +102,37 @@ export class GameService {
      */
     static hasFigure = (state: Cell[][], pos: number[]) => {
         return !!state[pos[1]][pos[0]].figure;
+    }
+
+    /**
+     * Возвращает позицию союзного короля
+     * @param state состояние доски
+     * @param figurePos позиция фигуры
+     */
+    static getTeammateKingPos = (state: Cell[][], figurePos: number[]) => {
+        const figureColor = GameService.getFigureColor(state, figurePos);
+
+        let kingPos: number[] | undefined = undefined;
+
+        // Используется цикл для того чтобы можно было остановить поиск
+        for (let j = 0; j < state.length; j++) {
+            const row = state[j];
+
+            for (let i = 0; i < row.length; i++) {
+                const { figure }= row[i];
+
+                if (figure?.color === figureColor && figure.type === 'king') {
+                    kingPos = [i, j];
+                    break;
+                }
+            }
+
+            if (!!kingPos) {
+                break;
+            }
+        }
+
+        return kingPos;
     }
 
     /**
@@ -135,7 +166,7 @@ export class GameService {
                 // ИЛИ Если есть фигура и эта фигура вражеская и не король
                 GameService.hasFigure(state, target) && 
                 GameService.checkEnemy(state, pos, target) && 
-                !GameService.chekEnemyKing(state, pos, target)
+                !GameService.checkEnemyKing(state, pos, target)
             )
         );
     }
@@ -173,6 +204,24 @@ export class GameService {
         }
     }
 
+    /**
+     * Корректирует возможные ходы фигуры в зависимости от того находится ли
+     * фигура под атакой и стоит ли на линии атаки король за фигурой
+     * @param state состояние доски
+     * @param figurePos позиция фигуры
+     * @param possibleMoves возможные ходы фигуры
+     */
+    static correctionPossibleMoves = (state: Cell[][], figurePos: number[], possibleMoves: number[][]) => {
+        
+    }
+
+    /**
+     * Возвращает все атакованные врагом позиции 
+     * используется для проверки ходов короля
+     * @param state состояние доски
+     * @param figurePos позиция фигуры
+     * @param reverse перевернута ли доска
+     */
     static getAllAttckedPostionsByEnemys = (state: Cell[][], figurePos: number[], reverse: boolean) => {
         const enemysPos = GameService.getAllEnemysPositions(state, figurePos);
         let attackedPositions: number[][] = [];
@@ -198,7 +247,7 @@ export class GameService {
                         state, 
                         [i, j], 
                         GameService.checkAttackedCell,
-                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.chekEnemyKing(state, [i, j], targetPos)
+                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.checkEnemyKing(state, [i, j], targetPos)
                     );
                     
                     attackedPositions = [...attackedPositions, ...bishopAttackedPos];
@@ -219,7 +268,7 @@ export class GameService {
                         state, 
                         [i, j], 
                         GameService.checkAttackedCell,
-                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.chekEnemyKing(state, [i, j], targetPos)
+                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.checkEnemyKing(state, [i, j], targetPos)
                     );
                     
                     attackedPositions = [...attackedPositions, ...rookAttackedPos];
@@ -230,14 +279,14 @@ export class GameService {
                         state, 
                         [i, j], 
                         GameService.checkAttackedCell,
-                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.chekEnemyKing(state, [i, j], targetPos)
+                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.checkEnemyKing(state, [i, j], targetPos)
                     );
 
                     const queenAttachedPosVH = GameService.calcHorizontalAndVerticalMoves(
                         state, 
                         [i, j], 
                         GameService.checkAttackedCell,
-                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.chekEnemyKing(state, [i, j], targetPos)
+                        (state, figurePos, targetPos) => GameService.hasFigure(state, targetPos) && !GameService.checkEnemyKing(state, [i, j], targetPos)
                     );
 
                     attackedPositions = [...attackedPositions, ...queenAttachedPosD, ...queenAttachedPosVH];
@@ -464,7 +513,7 @@ export class GameService {
                 return GameService.checkInBorderBoard(state, target.pos) && 
                     GameService.hasFigure(state, target.pos) && 
                     GameService.checkEnemy(state, pos, target.pos) &&
-                    !GameService.chekEnemyKing(state, pos, target.pos)
+                    !GameService.checkEnemyKing(state, pos, target.pos)
         }
     }
 
