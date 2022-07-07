@@ -189,6 +189,23 @@ export class GameService {
     }
 
     /**
+     * Возвращает позиции фигур-союзников по цвету
+     * @param state состояние доски
+     * @param color цвет по которому ищем фигуры-союзники
+     */
+    static getAllTeammatesPositionsByColor = (state: Cell[][], color: FigureColor) => {
+        const positions: number[][] = [];
+
+        state.forEach((row, j) => row.forEach((cell, i) => {
+            if (!!cell.figure && cell.figure.color === color) {
+                positions.push([i, j]);
+            }
+        }));
+
+        return positions;
+    }
+
+    /**
      * Полная проверка возможности хода для фигур: pawn, knigt, bishop, rook, queen
      * @param state состояния доски
      * @param pos положение фигуры союзного цвета
@@ -926,5 +943,144 @@ export class GameService {
 
     static getNextMovesKing = (state: Cell[][], figurePos: number[], reverse: boolean) => {
         return GameService.calcKingMoves(state, figurePos, reverse);
+    }
+
+    /**
+     * Возвращает линии по которым есть шах вражескому королю
+     * @param state состояние доски
+     * @param activeColor цвет фигур, которые сделали ход 
+     */
+    static getLinesWithCheck = (state: Cell[][], activeColor: FigureColor, reverse = false) => {
+        const posTeammates = GameService.getAllTeammatesPositionsByColor(state, activeColor);
+
+        const linesWithCheck: number[][][] = [];
+
+        posTeammates.forEach((pos) => {
+            const figureType = state[pos[1]][pos[0]].figure!.type;
+
+            switch(figureType) {
+                case 'bishop':
+                    DIRECTIONS_D.forEach((direction) => {
+                        const attackedLineBishop = GameService.getFullAttackedLine(state, pos, direction);
+                        
+                        let hasAttackedEnemyKing = false;
+
+                        for (let i = 0; i < attackedLineBishop.length; i++) {
+                            const attackedPos = attackedLineBishop[i];
+
+                            // Проверяем атакованную позицию
+                            // Если клетка пустая, то продолжаем проверять
+                            // Необходимое условие чтобы перед королем не было атакованной фигуры
+                            if (GameService.hasFigure(state, attackedPos) && !GameService.checkEnemyKing(state, pos, attackedPos)) {
+                                break;
+                            }
+
+                            // Если доходим до короля, перываем цикл и отмечаем
+                            // что линия имеет атакованного короля - объявлен шах
+                            if (GameService.checkEnemyKing(state, pos, attackedPos)) {
+                                hasAttackedEnemyKing = true;
+                                break;
+                            }
+                        }
+
+                        // Если линия имеет атакованного короля, добавляем ее в линии с шахами
+                        if (hasAttackedEnemyKing) {
+                            linesWithCheck.push(attackedLineBishop);
+                        }
+                    });
+
+                    break;
+
+                case 'rook':
+                    DIRECTIONS_VH.forEach((direction) => {
+                        const attackedLineRook = GameService.getFullAttackedLine(state, pos, direction);
+                        
+                        let hasAttackedEnemyKing = false;
+
+                        for (let i = 0; i < attackedLineRook.length; i++) {
+                            const attackedPos = attackedLineRook[i];
+
+                            // Проверяем атакованную позицию
+                            // Если клетка пустая, то продолжаем проверять
+                            // Необходимое условие чтобы перед королем не было атакованной фигуры
+                            if (GameService.hasFigure(state, attackedPos) && !GameService.checkEnemyKing(state, pos, attackedPos)) {
+                                break;
+                            }
+
+                            // Если доходим до короля, перываем цикл и отмечаем
+                            // что линия имеет атакованного короля - объявлен шах
+                            if (GameService.checkEnemyKing(state, pos, attackedPos)) {
+                                hasAttackedEnemyKing = true;
+                                break;
+                            }
+                        }
+
+                        // Если линия имеет атакованного короля, добавляем ее в линии с шахами
+                        if (hasAttackedEnemyKing) {
+                            linesWithCheck.push(attackedLineRook);
+                        }
+                    })
+
+                    break;
+
+                case 'queen':
+                    [...DIRECTIONS_D, ...DIRECTIONS_VH].forEach((direction) => {
+                        const attackedLineQueen = GameService.getFullAttackedLine(state, pos, direction);
+
+                        let hasAttackedEnemyKing = false;
+
+                        for (let i = 0; i < attackedLineQueen.length; i++) {
+                            const attackedPos = attackedLineQueen[i];
+
+                            // Проверяем атакованную позицию
+                            // Если клетка пустая, то продолжаем проверять
+                            // Необходимое условие чтобы перед королем не было атакованной фигуры
+                            if (GameService.hasFigure(state, attackedPos) && !GameService.checkEnemyKing(state, pos, attackedPos)) {
+                                break;
+                            }
+
+                            // Если доходим до короля, перываем цикл и отмечаем
+                            // что линия имеет атакованного короля - объявлен шах
+                            if (GameService.checkEnemyKing(state, pos, attackedPos)) {
+                                hasAttackedEnemyKing = true;
+                                break;
+                            }
+                        }
+
+                        // Если линия имеет атакованного короля, добавляем ее в линии с шахами
+                        if (hasAttackedEnemyKing) {
+                            linesWithCheck.push(attackedLineQueen);
+                        }
+                    })
+
+                    break;
+
+                case 'pawn':
+                    // TODO: Добавить проверку шаха для пешки
+
+                    const attackedPositions: number[][][] = [];
+
+                    if (reverse) {
+                        if (activeColor === 'white') {
+
+                        } else {
+
+                        }
+                    } else {
+                        if (activeColor === 'white') {
+                            
+                        } else {
+                            
+                        }
+                    }
+                    break;
+
+                case 'knigts':
+                    // TODO: Добавить проверку шаха для коня
+                    break;
+            }
+        });
+
+        return linesWithCheck;
     }
 }
