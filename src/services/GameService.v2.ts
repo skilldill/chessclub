@@ -1133,14 +1133,14 @@ export class GameService {
 
                 case 'knigts':
                     const knigtAttackedPositions = [
-                        [pos[0], pos[1] - 1],
-                        [pos[0] + 1, pos[1] - 1],
-                        [pos[0] + 1, pos[1]],
-                        [pos[0] + 1, pos[1] + 1],
-                        [pos[0], pos[1] + 1],
-                        [pos[0] - 1, pos[1] + 1],
-                        [pos[0] - 1, pos[1]],
-                        [pos[0] - 1, pos[1] - 1],
+                        [pos[0] + 1, pos[1] - 2],
+                        [pos[0] - 1, pos[1] - 2],
+                        [pos[0] - 2, pos[1] + 1],
+                        [pos[0] - 2, pos[1] - 1],
+                        [pos[0] + 2, pos[1] + 1],
+                        [pos[0] + 2, pos[1] - 1],
+                        [pos[0] + 1, pos[1] + 2],
+                        [pos[0] - 1, pos[1] + 2],
                     ];
 
                     knigtAttackedPositions.forEach((attackedPos) => {
