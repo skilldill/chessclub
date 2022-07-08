@@ -1,4 +1,3 @@
-import { color } from "@chakra-ui/react";
 import { Cell, FigureColor, MoveByPawn, MoveDirection, OnCheckPossible } from "models";
 
 const DIRECTIONS_D: MoveDirection[] = ['top-right', 'bottom-right', 'bottom-left', 'top-left'];
@@ -287,7 +286,7 @@ export class GameService {
         }
     }
 
-    /** TODO НУЖНО УЧЕСТЬ ЧТО МОЖЕТ БЫТЬ НЕСКОЛЬКО ФИГУР ПЕРЕД КОРОЛЕМ
+    /**
      * Корректирует возможные ходы фигуры в зависимости от того находится ли
      * фигура под атакой и стоит ли на линии атаки король за фигурой
      * @param state состояние доски
