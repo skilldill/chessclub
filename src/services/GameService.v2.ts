@@ -5,7 +5,19 @@ const DIRECTIONS_D: MoveDirection[] = ['top-right', 'bottom-right', 'bottom-left
 const DIRECTIONS_VH: MoveDirection[] = ['top', 'right', 'bottom', 'left'];
 
 export class GameService {
-    static getNextMoves = (state: Cell[][], [i, j]: number[], revese = false): number[][] => {
+    /**
+     * Возвращает возможные ходы фигуры
+     * @param state состояние доски
+     * @param param1 позиция фигуры, которой хотим сыграть
+     * @param linesWithCheck линии по которым есть шах на союзного короля
+     * @param revese перевернута ли доска
+     */
+    static getNextMoves = (
+        state: Cell[][], 
+        [i, j]: number[], 
+        linesWithCheck: number[][][],
+        revese = false
+    ): number[][] => {
         const figure = state[j][i].figure!;
         const { type } = figure;
 
@@ -14,27 +26,27 @@ export class GameService {
         switch(type) {
             case 'pawn':
                 const pawnPossibleMoves = GameService.getNextMovesPawn(state, [i, j], revese);
-                nextPositions = GameService.correctionPossibleMoves(state, [i, j], pawnPossibleMoves);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], pawnPossibleMoves, linesWithCheck);
                 break;
             
             case 'bishop':
                 const bishopPossibleMoves = GameService.getNextMovesBishop(state, [i, j]);
-                nextPositions = GameService.correctionPossibleMoves(state, [i, j], bishopPossibleMoves);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], bishopPossibleMoves, linesWithCheck);
                 break;
 
             case 'knigts':
                 const knigtPossibleMoves = GameService.getNextMovesKnigts(state, [i, j]);
-                nextPositions = GameService.correctionPossibleMoves(state, [i, j], knigtPossibleMoves);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], knigtPossibleMoves, linesWithCheck);
                 break;
 
             case 'rook':
                 const rookPossibleMovese = GameService.getNextMovesRook(state, [i, j]);
-                nextPositions = GameService.correctionPossibleMoves(state, [i, j], rookPossibleMovese);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], rookPossibleMovese, linesWithCheck);
                 break;
 
             case 'queen':
                 const queenPossibleMoves = GameService.getNextMovesQueen(state, [i, j]);
-                nextPositions = GameService.correctionPossibleMoves(state, [i, j], queenPossibleMoves);
+                nextPositions = GameService.correctionPossibleMoves(state, [i, j], queenPossibleMoves, linesWithCheck);
                 break;
 
             case 'king':
@@ -281,8 +293,14 @@ export class GameService {
      * @param state состояние доски
      * @param figurePos позиция фигуры
      * @param possibleMoves возможные ходы фигуры
+     * @param linesWithCheck массив линий по которым есть шах на союзного короля
      */
-    static correctionPossibleMoves = (state: Cell[][], figurePos: number[], possibleMoves: number[][]) => {
+    static correctionPossibleMoves = (
+        state: Cell[][], 
+        figurePos: number[], 
+        possibleMoves: number[][],
+        linesWithCheck: number[][][],
+    ) => {
         const kingPos = GameService.getTeammateKingPos(state, figurePos)!;
 
         const enemysPos = GameService.getAllEnemysPositions(state, figurePos);
@@ -408,10 +426,37 @@ export class GameService {
             }
         })
 
-        if (!kingBehidFigure)
-            return possibleMoves;
+        const preparedMoves = kingBehidFigure ? correctedPossibleMoves : possibleMoves;
 
-        return correctedPossibleMoves;
+        // Если линия с шахом только одна
+        // то фигура способна зашитить короля
+        if (linesWithCheck.length === 1) {
+            const correctedMovesForProtectKing: number[][] = [];
+
+            const attackedLine = linesWithCheck[0];
+            
+            attackedLine.forEach((attackedPos) => {
+                preparedMoves.forEach((possibleMove) => {
+                    // Если возможный ход совпдает с одной из атакованных позций
+                    // Значит фигуры может прикрыть короля от шаха
+
+                    if (attackedPos[0] === possibleMove[0] && attackedPos[1] === possibleMove[1]) {
+                        correctedMovesForProtectKing.push(possibleMove);
+                    }
+                })
+            })
+
+            return correctedMovesForProtectKing;
+        }
+
+        // Если двойной и более шах, то одна фигура не способна
+        // защитить от нескольких линий атак
+        // следовательно не можем делать ход фигурой
+        if (linesWithCheck.length > 1)
+            return [];
+        
+        // Атаки на короля нет, фигуры могут свободно ходить
+        return preparedMoves;
     }
 
     /**
@@ -986,7 +1031,7 @@ export class GameService {
 
                         // Если линия имеет атакованного короля, добавляем ее в линии с шахами
                         if (hasAttackedEnemyKing) {
-                            linesWithCheck.push(attackedLineBishop);
+                            linesWithCheck.push([...attackedLineBishop, pos]);
                         }
                     });
 
@@ -1018,7 +1063,7 @@ export class GameService {
 
                         // Если линия имеет атакованного короля, добавляем ее в линии с шахами
                         if (hasAttackedEnemyKing) {
-                            linesWithCheck.push(attackedLineRook);
+                            linesWithCheck.push([...attackedLineRook, pos]);
                         }
                     });
 
@@ -1050,7 +1095,7 @@ export class GameService {
 
                         // Если линия имеет атакованного короля, добавляем ее в линии с шахами
                         if (hasAttackedEnemyKing) {
-                            linesWithCheck.push(attackedLineQueen);
+                            linesWithCheck.push([...attackedLineQueen, pos]);
                         }
                     });
 
@@ -1081,7 +1126,7 @@ export class GameService {
                             // И в клетке есть вражеский король
                             GameService.checkEnemyKing(state, pos, attackedPos)
                         ) {
-                            linesWithCheck.push([attackedPos]);
+                            linesWithCheck.push([attackedPos, pos]);
                         }
                     });
 
@@ -1105,7 +1150,7 @@ export class GameService {
                             // И в клетке есть вражеский король
                             GameService.checkEnemyKing(state, pos, attackedPos)
                         ) {
-                            linesWithCheck.push([attackedPos]);
+                            linesWithCheck.push([attackedPos, pos]);
                         }
                     });
 

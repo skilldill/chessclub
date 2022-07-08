@@ -64,10 +64,10 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
             setFromBoardPos(boardPos);
             document.body.style.cursor = 'grabbing';
     
-            const nextMoves = GameServiceV2.getNextMoves(cellsState, boardPos, reverse);
+            const nextMoves = GameServiceV2.getNextMoves(cellsState, boardPos, linesWithCheck, reverse);
             setNextMovesPositions(nextMoves);
         }
-    }, [cellsState, currentColor, reverse])
+    }, [cellsState, currentColor, linesWithCheck, reverse])
 
     const handleMouseMoveFigure = useCallback((event: MouseEvent) => {
         if (!!chessBoardHtml) {
