@@ -1,3 +1,4 @@
+import { color } from "@chakra-ui/react";
 import { Cell, FigureColor, MoveByPawn, MoveDirection, OnCheckPossible } from "models";
 
 const DIRECTIONS_D: MoveDirection[] = ['top-right', 'bottom-right', 'bottom-left', 'top-left'];
@@ -1019,7 +1020,7 @@ export class GameService {
                         if (hasAttackedEnemyKing) {
                             linesWithCheck.push(attackedLineRook);
                         }
-                    })
+                    });
 
                     break;
 
@@ -1051,32 +1052,65 @@ export class GameService {
                         if (hasAttackedEnemyKing) {
                             linesWithCheck.push(attackedLineQueen);
                         }
-                    })
+                    });
 
                     break;
 
                 case 'pawn':
-                    // TODO: Добавить проверку шаха для пешки
+                    const pawnAttackedPositions: number[][] = [];
 
-                    const attackedPositions: number[][][] = [];
+                    if ((reverse && activeColor === 'white') || (!reverse && activeColor === 'black')) {
+                        // Вниз-вправо
+                        pawnAttackedPositions.push([pos[0] + 1, pos[1] + 1]);
 
-                    if (reverse) {
-                        if (activeColor === 'white') {
+                        // Вниз-влево
+                        pawnAttackedPositions.push([pos[0] - 1, pos[1] + 1]);
+                    } 
+                    
+                    if ((reverse && activeColor === 'black') || (!reverse && activeColor === 'white')) {
+                        // Вверх-вправо
+                        pawnAttackedPositions.push([pos[0] + 1, pos[1] - 1]);
 
-                        } else {
-
-                        }
-                    } else {
-                        if (activeColor === 'white') {
-                            
-                        } else {
-                            
-                        }
+                        // Вверх-влево
+                        pawnAttackedPositions.push([pos[0] - 1, pos[1] - 1]);
                     }
+
+                    pawnAttackedPositions.forEach((attackedPos) => {
+                        if (// Позиция находится в пределах доски
+                            GameService.checkInBorderBoard(state, attackedPos) && 
+                            // И в клетке есть вражеский король
+                            GameService.checkEnemyKing(state, pos, attackedPos)
+                        ) {
+                            linesWithCheck.push([attackedPos]);
+                        }
+                    });
+
                     break;
 
                 case 'knigts':
                     // TODO: Добавить проверку шаха для коня
+
+                    const knigtAttackedPositions = [
+                        [pos[0], pos[1] - 1],
+                        [pos[0] + 1, pos[1] - 1],
+                        [pos[0] + 1, pos[1]],
+                        [pos[0] + 1, pos[1] + 1],
+                        [pos[0], pos[1] + 1],
+                        [pos[0] - 1, pos[1] + 1],
+                        [pos[0] - 1, pos[1]],
+                        [pos[0] - 1, pos[1] - 1],
+                    ];
+
+                    knigtAttackedPositions.forEach((attackedPos) => {
+                        if (// Позиция находится в пределах доски
+                            GameService.checkInBorderBoard(state, attackedPos) && 
+                            // И в клетке есть вражеский король
+                            GameService.checkEnemyKing(state, pos, attackedPos)
+                        ) {
+                            linesWithCheck.push([attackedPos]);
+                        }
+                    });
+
                     break;
             }
         });
