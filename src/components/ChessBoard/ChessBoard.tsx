@@ -135,6 +135,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
     useEffect(() => {
         const prevColor = currentColor === 'white' ? 'black' : 'white';
         const linesWithCheck = GameServiceV2.getLinesWithCheck(cellsState, prevColor);
+        
         setLinesWithCheck(linesWithCheck);
     }, [cellsState, reverse, currentColor])
 
