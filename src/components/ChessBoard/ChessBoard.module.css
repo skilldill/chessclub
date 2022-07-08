@@ -11,6 +11,10 @@
     position: relative;
 }
 
+.chessBoardCellChecked {
+    box-shadow: inset 0 0 30px #ff000080;
+}
+
 .nextMoveIndicator {
     position: absolute;
     width: 20px;
@@ -26,7 +30,7 @@
     display: block;
 }
 
-.chessBoardComtrolLayer {
+.chessBoardControlLayer {
     z-index: 100;
     position: absolute;
     top: 0;

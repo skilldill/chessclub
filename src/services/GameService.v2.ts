@@ -953,7 +953,7 @@ export class GameService {
      */
     static getLinesWithCheck = (state: Cell[][], activeColor: FigureColor, reverse = false) => {
         const posTeammates = GameService.getAllTeammatesPositionsByColor(state, activeColor);
-
+        
         const linesWithCheck: number[][][] = [];
 
         posTeammates.forEach((pos) => {
@@ -1088,8 +1088,6 @@ export class GameService {
                     break;
 
                 case 'knigts':
-                    // TODO: Добавить проверку шаха для коня
-
                     const knigtAttackedPositions = [
                         [pos[0], pos[1] - 1],
                         [pos[0] + 1, pos[1] - 1],

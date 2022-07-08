@@ -41,6 +41,9 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
 
     const [currentColor, setCurrentColor] = useState<FigureColor>('white');
 
+    // Линии по которым есть шах
+    const [linesWithCheck, setLinesWithCheck] = useState<number[][][]>([]);
+
     useEffect(() => {
         if (reverse) {
             const prepareCells = [...cells];
@@ -121,6 +124,20 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
             !!nextMovesPositions.find((nextPos) => nextPos[0] === pos[0] && nextPos[1] === pos[1]);
     }, [nextMovesPositions])
 
+    const isCellWithCheck = useCallback((cell: Cell) => 
+        !!cell.figure && 
+        cell.figure.type === 'king' && 
+        cell.figure.color === currentColor && 
+        linesWithCheck.length > 0
+    , [currentColor, linesWithCheck])
+
+    // Эффект для проверки шаха при изменении состояния
+    useEffect(() => {
+        const prevColor = currentColor === 'white' ? 'black' : 'white';
+        const linesWithCheck = GameServiceV2.getLinesWithCheck(cellsState, prevColor);
+        setLinesWithCheck(linesWithCheck);
+    }, [cellsState, reverse, currentColor])
+
     return (
         <div 
             id="chessBoard"
@@ -128,7 +145,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
             onMouseMove={handleMouseMoveFigure}
             onContextMenu={(event) => event.preventDefault()}
         >
-            <div className={styles.chessBoardComtrolLayer}>
+            <div className={styles.chessBoardControlLayer}>
                 {/**Слой для контроля положения фигуры на доске */
                     cellsState.map((row, j) => 
                     <div className={styles.chessBoardRow} key={j}>
@@ -170,7 +187,9 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
                     {row.map((cell, i) =>
                         <div
                             key={`${j}${i}`} 
-                            className={styles.chessBoardCell}
+                            className={cn([styles.chessBoardCell], {
+                                [styles.chessBoardCellChecked]: isCellWithCheck(cell)
+                            })}
                             data-type="cell"
                             style={{ 
                                 width: config.cellSize, 
