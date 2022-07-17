@@ -1176,6 +1176,8 @@ export class GameService {
     /**
      * Принимает данные о фигуре, которой сыграли
      * затем обновляет и возвращает новое состояние доски
+     * !!! Какой-то старнный эффект если не использовать мап
+     * !!! Как будто происходит мутация состояния
      * @param state состояние доски
      * @param currentFigure фигура, которой сыграли
      * @param targetPos позиция на которую перемещаем фигуру
@@ -1183,64 +1185,55 @@ export class GameService {
      */
     static changeState = (
         state: Cell[][], 
-        currentFigure: Figure, 
+        currentFigure: Figure,
         targetPos: number[],
         prevPos: number[]
     ) => {
-        const updatedCells = [...state];
-                
-        updatedCells[targetPos[1]][targetPos[0]] = {
-            figure: { 
-                ...currentFigure,
-                touched: true 
-            } 
-        };
+        const updatedCells: Cell[][] = state.map((row, j) => row.map((cell, i) => {
+            if (targetPos[0] === i && targetPos[1] === j) {
+                return {
+                    figure: { 
+                        ...currentFigure,
+                        touched: true 
+                    } 
+                };
+            }
 
-        if (currentFigure.type === 'pawn' && GameService.checkBeatedCell(updatedCells, targetPos)) {
-            // Если пешка сходила на битое поле
-            updatedCells[prevPos[1]][targetPos[0]] = { figure: undefined };
-        }
+            if (prevPos[0] === i && prevPos[1] === j) {
+                return {
+                    figure: undefined
+                }
+            }
 
-        updatedCells[prevPos[1]][prevPos[0]] = { figure: undefined };
-        
-        // Каждый ход необходимо проверять битое ли поле, если да,
-        // то сделать его не битым
-        updatedCells.forEach((row) => row.forEach((cell) => {
-            cell.beated = false;
-        }))
+            // Если сходили пешкой на битое поле,
+            // то забираем пешку противника, 
+            // которая оставила битое поле
+            if (
+                currentFigure.type === 'pawn' && 
+                GameService.checkBeatedCell(state, targetPos) &&
+                (j === prevPos[1] && i === targetPos[0])
+            ) {
+                return { figure: undefined, beated: false };
+            }
 
-        console.log(updatedCells);
-
-        // Только король и пешка могут нестандартно менять состояние доски
-        // Пешка может сделать поле битым
-        // Король может сделать рокировку
-        switch(currentFigure.type) {
-            case 'pawn':
-                // TODO: учеесть reverse доски
-
-                // Находим насколько изменлось положение пешки по прямой
-                // Если на две клетки, то поля мимо которых прошла пешка
-                // становятся битыми
+            // Если пешка сходила на две клетки вперед
+            // то помечаем поле как битое
+            if (currentFigure.type === 'pawn') {
                 const diff = targetPos[1] - prevPos[1];
 
                 if (Math.abs(diff) === 2) {
-                    if (diff < 0) {
-                        // Пешка идет снизу вверх
-                        updatedCells[prevPos[1] - 1][prevPos[0]].beated = true;
-                    }
-
-                    if (diff > 0) {
-                        // Пешка идет сверху вниз
-                        updatedCells[prevPos[1] + 1][prevPos[0]].beated = true;
+                    if (
+                        (diff > 0 && (j === (targetPos[1] - 1) && targetPos[0] === i)) ||
+                        (diff < 0 && (j === (targetPos[1] + 1) && targetPos[0] === i))
+                    ) {
+                        return { figure: undefined, beated: true };
                     }
                 }
+            }
 
-                break;
-
-            case 'king':
-                break;
-        }
-
+            return { ...cell, beated: cell.beated ? false : cell.beated };
+        }));
+       
         return updatedCells;
     }
 }

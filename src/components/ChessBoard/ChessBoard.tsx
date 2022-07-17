@@ -132,10 +132,6 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         setLinesWithCheck(linesWithCheck);
     }, [cellsState, reverse, currentColor])
 
-    useEffect(() => {
-        console.log(cellsState);
-    }, [cellsState])
-
     return (
         <div 
             id="chessBoard"
