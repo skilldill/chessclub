@@ -115,6 +115,16 @@ export class GameService {
     }
 
     /**
+     * Проверяет битая ли клетка, клетка становится битой после того
+     * как пешка сделает ход на две клетки веперед
+     * @param state состояние доски
+     * @param target позиция проверяемой клетки
+     */
+    static checkBeatedCell = (state: Cell[][], target: number[]) => {
+        return state[target[1]][target[0]].beated;
+    }
+
+    /**
      * Возвращает есть ли фигура в указаной позиции
      * @param state состояние доски
      * @param pos проверяемая позиция
@@ -857,6 +867,7 @@ export class GameService {
                 return GameService.checkInBorderBoard(state, target.pos) && 
                     GameService.hasFigure(state, target.pos) && 
                     GameService.checkEnemy(state, pos, target.pos) &&
+                    GameService.checkBeatedCell(state, target.pos) &&
                     !GameService.checkEnemyKing(state, pos, target.pos)
         }
     }

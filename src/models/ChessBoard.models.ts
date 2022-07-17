@@ -4,4 +4,5 @@ export type CellColor = 'white' | 'black';
 
 export interface Cell {
     figure?: Figure;
+    beated?: boolean;
 }

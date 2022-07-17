@@ -4,4 +4,5 @@ export type FigureColor = 'white' | 'black';
 export interface Figure {
     type: FigureType;
     color: FigureColor;
+    touched: boolean; 
 }
