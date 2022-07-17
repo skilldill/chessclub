@@ -955,6 +955,18 @@ export class GameService {
             [figurePos[0] - 1, figurePos[1] - 1],
         ]
 
+        // TODO: добавить рокеровку
+        const castlingMoves = [
+            // Для короткой рокеровки
+            [figurePos[0] + 2, figurePos[1]],
+            [figurePos[0] + 3, figurePos[1]],
+
+            // Для длинной рокеровки
+            [figurePos[0] - 2, figurePos[1]],
+            [figurePos[0] - 3, figurePos[1]],
+            [figurePos[0] - 4, figurePos[1]],
+        ]
+
         if (onlyAttacks)
             return possibleMoves;
 
