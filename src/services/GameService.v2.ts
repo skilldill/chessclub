@@ -1,4 +1,4 @@
-import { Cell, FigureColor, MoveByPawn, MoveDirection, OnCheckPossible } from "models";
+import { Cell, Figure, FigureColor, MoveByPawn, MoveDirection, OnCheckPossible } from "models";
 
 const DIRECTIONS_D: MoveDirection[] = ['top-right', 'bottom-right', 'bottom-left', 'top-left'];
 const DIRECTIONS_VH: MoveDirection[] = ['top', 'right', 'bottom', 'left'];
@@ -15,7 +15,7 @@ export class GameService {
         state: Cell[][], 
         [i, j]: number[], 
         linesWithCheck: number[][][],
-        revese = false
+        revese = false,
     ): number[][] => {
         const figure = state[j][i].figure!;
         const { type } = figure;
@@ -1169,5 +1169,45 @@ export class GameService {
         });
 
         return linesWithCheck;
+    }
+
+    /**
+     * Принимает данные о фигуре, которой сыграли
+     * затем обновляет и возвращает новое состояние доски
+     * @param state состояние доски
+     * @param currentFigure фигура, которой сыграли
+     * @param targetPos позиция на которую перемещаем фигуру
+     * @param prevPos начальная позиция фигуры
+     */
+    static changeState = (
+        state: Cell[][], 
+        currentFigure: Figure, 
+        targetPos: number[], 
+        prevPos: number[]
+    ) => {
+        const updatedCells = [...state];
+                
+        updatedCells[targetPos[1]][targetPos[0]] = { 
+            figure: { 
+                ...currentFigure,
+                touched: true 
+            } 
+        };
+
+        updatedCells[prevPos[1]][prevPos[0]] = { figure: undefined };
+        
+        // Каждый ход необходимо проверять битое ли поле, если да,
+        // то сделать его не битым
+        updatedCells.forEach((row) => row.forEach((cell) => {
+            cell.beated = false;
+        }))
+
+        // Только король и пешка могут нестандартно менять состояние доски
+        // Пешка может сделать поле битым
+        // Король может сделать рокировку
+
+        
+
+        return updatedCells;
     }
 }
