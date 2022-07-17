@@ -121,7 +121,7 @@ export class GameService {
      * @param target позиция проверяемой клетки
      */
     static checkBeatedCell = (state: Cell[][], target: number[]) => {
-        return state[target[1]][target[0]].beated;
+        return !!state[target[1]][target[0]].beated;
     }
 
     /**
@@ -864,11 +864,13 @@ export class GameService {
                 return !GameService.hasFigure(state, target.pos);
 
             case 'attack':
-                return GameService.checkInBorderBoard(state, target.pos) && 
+                return (GameService.checkInBorderBoard(state, target.pos) && 
                     GameService.hasFigure(state, target.pos) && 
                     GameService.checkEnemy(state, pos, target.pos) &&
-                    GameService.checkBeatedCell(state, target.pos) &&
-                    !GameService.checkEnemyKing(state, pos, target.pos)
+                    !GameService.checkEnemyKing(state, pos, target.pos)) 
+                    // Если поле битое
+                    || (GameService.checkInBorderBoard(state, target.pos) && 
+                        GameService.checkBeatedCell(state, target.pos))
         }
     }
 
@@ -1182,17 +1184,22 @@ export class GameService {
     static changeState = (
         state: Cell[][], 
         currentFigure: Figure, 
-        targetPos: number[], 
+        targetPos: number[],
         prevPos: number[]
     ) => {
         const updatedCells = [...state];
                 
-        updatedCells[targetPos[1]][targetPos[0]] = { 
+        updatedCells[targetPos[1]][targetPos[0]] = {
             figure: { 
                 ...currentFigure,
                 touched: true 
             } 
         };
+
+        if (currentFigure.type === 'pawn' && GameService.checkBeatedCell(updatedCells, targetPos)) {
+            // Если пешка сходила на битое поле
+            updatedCells[prevPos[1]][targetPos[0]] = { figure: undefined };
+        }
 
         updatedCells[prevPos[1]][prevPos[0]] = { figure: undefined };
         
@@ -1202,11 +1209,37 @@ export class GameService {
             cell.beated = false;
         }))
 
+        console.log(updatedCells);
+
         // Только король и пешка могут нестандартно менять состояние доски
         // Пешка может сделать поле битым
         // Король может сделать рокировку
+        switch(currentFigure.type) {
+            case 'pawn':
+                // TODO: учеесть reverse доски
 
-        
+                // Находим насколько изменлось положение пешки по прямой
+                // Если на две клетки, то поля мимо которых прошла пешка
+                // становятся битыми
+                const diff = targetPos[1] - prevPos[1];
+
+                if (Math.abs(diff) === 2) {
+                    if (diff < 0) {
+                        // Пешка идет снизу вверх
+                        updatedCells[prevPos[1] - 1][prevPos[0]].beated = true;
+                    }
+
+                    if (diff > 0) {
+                        // Пешка идет сверху вниз
+                        updatedCells[prevPos[1] + 1][prevPos[0]].beated = true;
+                    }
+                }
+
+                break;
+
+            case 'king':
+                break;
+        }
 
         return updatedCells;
     }

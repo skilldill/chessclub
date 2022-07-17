@@ -89,11 +89,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         if (conditionForDoMove) {
             setCurrentColor((prevValue) => prevValue === 'black' ? 'white' : 'black');
 
-            setCellsState((prevCells) => {
-                const updatedCells = GameServiceV2.changeState(prevCells, holdingFigure, pos, fromBoardPos!);
-                
-                return updatedCells;
-            })
+            setCellsState(GameServiceV2.changeState(cellsState, holdingFigure, pos, fromBoardPos!));
         }
         
         setHoldingFigure(undefined);
@@ -101,7 +97,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         setNextMovesPositions(undefined);
 
         document.body.style.cursor = 'initial';
-    }, [holdingFigure, fromBoardPos, nextMovesPositions])
+    }, [holdingFigure, fromBoardPos, nextMovesPositions, cellsState])
 
     const handleMouseUpFigure = useCallback(() => {
         setHoldingFigure(undefined);
@@ -135,6 +131,10 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         
         setLinesWithCheck(linesWithCheck);
     }, [cellsState, reverse, currentColor])
+
+    useEffect(() => {
+        console.log(cellsState);
+    }, [cellsState])
 
     return (
         <div 
