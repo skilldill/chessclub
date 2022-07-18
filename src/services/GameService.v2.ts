@@ -964,13 +964,13 @@ export class GameService {
         if (!!foundCheckKingPos)
             return false;
 
-        console.log('step 2');
-
         // Если ладью перемещали - рокеровка невозможна
         // figurePos[1] - горизонталь на которой изначально находится короля
         // на ней же должны находиться ладьи
         const castlingPathWithoutRook = [...castlingPath];
         const rookPos = castlingPathWithoutRook.pop();
+
+        console.log(rookPos);
 
         if (!state[rookPos![1]][rookPos![0]].figure)
             return false;
@@ -978,8 +978,6 @@ export class GameService {
         if (!!state[rookPos![1]][rookPos![0]].figure && state[rookPos![1]][rookPos![0]].figure?.touched)
             return false;
 
-        console.log('step 3');
-        
         // Если на пути рокеровки есть фигуры - рокеровка невохможна
         const castlinPathWithFigures = castlingPathWithoutRook.filter((castlingPos) => 
             GameService.hasFigure(state, castlingPos)
@@ -987,11 +985,6 @@ export class GameService {
 
         if (castlinPathWithFigures.length > 0)
             return false;
-
-
-        console.log('step 4');
-
-        
 
         let isPossibleCastling = true;
 
@@ -1011,8 +1004,6 @@ export class GameService {
             if (!isPossibleCastling)
                 break;
         }
-
-        console.log('step 5', isPossibleCastling);
 
         return isPossibleCastling;
     }
@@ -1038,19 +1029,37 @@ export class GameService {
         ]
 
         // Для короткой рокеровки
-        const castlingMoves = [
+        const castlingMovesDefault = [
             [figurePos[0] + 1, figurePos[1]],
             [figurePos[0] + 2, figurePos[1]],
             [figurePos[0] + 3, figurePos[1]],
         ];
 
         // Для длинной рокеровки
-        const longCastlingMoves = [
+        const longCastlingMovesDefault = [
             [figurePos[0] - 1, figurePos[1]],
             [figurePos[0] - 2, figurePos[1]],
             [figurePos[0] - 3, figurePos[1]],
             [figurePos[0] - 4, figurePos[1]],
         ]
+
+        // Для короткой рокеровки (доска развернута)
+        const castlingMovesReversed = [
+            [figurePos[0] - 1, figurePos[1]],
+            [figurePos[0] - 2, figurePos[1]],
+            [figurePos[0] - 3, figurePos[1]],
+        ];
+
+        // Для длинной рокеровки (доска развернута)
+        const longCastlingMovesReversed = [
+            [figurePos[0] + 1, figurePos[1]],
+            [figurePos[0] + 2, figurePos[1]],
+            [figurePos[0] + 3, figurePos[1]],
+            [figurePos[0] + 4, figurePos[1]],
+        ]
+
+        const castlingMoves = reverse ? castlingMovesReversed : castlingMovesDefault;
+        const longCastlingMoves = reverse ? longCastlingMovesReversed : longCastlingMovesDefault;
 
         if (onlyAttacks)
             return possibleMoves;
@@ -1069,21 +1078,16 @@ export class GameService {
             }
         });
 
-        console.log(GameService.checkPossibleCastling(state, figurePos, castlingMoves, reverse));
-        console.log(GameService.checkPossibleCastling(state, figurePos, longCastlingMoves, reverse));
-
         // Проверка на возможность рокеровки
         // 1. Король не перемещался
         // 2. Ладьи не перемещались
         // 3. Рокеровке не мешают фигуры
         // 4. поля для рокеровки не атакованы
         if (GameService.checkPossibleCastling(state, figurePos, castlingMoves, reverse)) {
-            console.log('possible castling');
             castlingMoves.forEach((castlingPos) => nextMoves.push(castlingPos));
         }
 
         if (GameService.checkPossibleCastling(state, figurePos, longCastlingMoves, reverse)) {
-            console.log('possible long castling');
             longCastlingMoves.forEach((castlingPos) => nextMoves.push(castlingPos));
         }
 
@@ -1297,14 +1301,176 @@ export class GameService {
      * @param currentFigure фигура, которой сыграли
      * @param targetPos позиция на которую перемещаем фигуру
      * @param prevPos начальная позиция фигуры
+     * @param reverse перевернута ли доска
      */
     static changeState = (
         state: Cell[][], 
         currentFigure: Figure,
         targetPos: number[],
-        prevPos: number[]
+        prevPos: number[],
+        reverse: boolean
     ) => {
+        // Для определения рокировки
+        const diffHorizontal = targetPos[0] - prevPos[0];
+
+        if (currentFigure.type === 'king' && Math.abs(diffHorizontal) > 1) {
+            // Была сделана рокеровка
+
+            if (diffHorizontal > 0) {
+                if (reverse) {
+                    // 0-0-0
+                    const updatedCell: Cell[][] = state.map((row, j) => row.map((cell, i) => {
+                        if (j === prevPos[1] && i === 4) {
+                            return {
+                                ...cell,
+                                figure: {
+                                    type: 'rook',
+                                    color: currentFigure.color,
+                                    touched: true
+                                }
+                            }
+                        }
+
+                        if (j === prevPos[1] && i === 5) {
+                            return {
+                                ...cell,
+                                figure: {
+                                    type: 'king',
+                                    color: currentFigure.color,
+                                    touched: true
+                                }
+                            }
+                        }
+
+                        if ((j === prevPos[1] && i === 7) || (j === prevPos[1] && i === prevPos[0])) {
+                            return {
+                                ...cell,
+                                figure: undefined
+                            }
+                        }
+
+                        return cell;
+                    }))
+
+                    return updatedCell;
+                } else {
+                    // 0-0
+                    const updatedCell: Cell[][] = state.map((row, j) => row.map((cell, i) => {
+                        if (j === prevPos[1] && i === 5) {
+                            return {
+                                ...cell,
+                                figure: {
+                                    type: 'rook',
+                                    color: currentFigure.color,
+                                    touched: true
+                                }
+                            }
+                        }
+
+                        if (j === prevPos[1] && i === 6) {
+                            return {
+                                ...cell,
+                                figure: {
+                                    type: 'king',
+                                    color: currentFigure.color,
+                                    touched: true
+                                }
+                            }
+                        }
+
+                        if ((j === prevPos[1] && i === 7) || (j === prevPos[1] && i === prevPos[0])) {
+                            return {
+                                ...cell,
+                                figure: undefined
+                            }
+                        }
+
+                        return cell;
+                    }))
+
+                    return updatedCell;
+                }
+            }
+
+            if (diffHorizontal < 0) {
+                if (reverse) {
+                    // 0-0
+                    const updatedCell: Cell[][] = state.map((row, j) => row.map((cell, i) => {
+                        if (j === prevPos[1] && i === 2) {
+                            return {
+                                ...cell,
+                                figure: {
+                                    type: 'rook',
+                                    color: currentFigure.color,
+                                    touched: true
+                                }
+                            }
+                        }
+
+                        if (j === prevPos[1] && i === 1) {
+                            return {
+                                ...cell,
+                                figure: {
+                                    type: 'king',
+                                    color: currentFigure.color,
+                                    touched: true
+                                }
+                            }
+                        }
+
+                        if ((j === prevPos[1] && i === 0) || (j === prevPos[1] && i === prevPos[0])) {
+                            return {
+                                ...cell,
+                                figure: undefined
+                            }
+                        }
+
+                        return cell;
+                    }))
+
+                    return updatedCell;
+                } else {
+                    // 0-0-0
+                    const updatedCell: Cell[][] = state.map((row, j) => row.map((cell, i) => {
+                        if (j === prevPos[1] && i === 3) {
+                            return {
+                                ...cell,
+                                figure: {
+                                    type: 'rook',
+                                    color: currentFigure.color,
+                                    touched: true
+                                }
+                            }
+                        }
+
+                        if (j === prevPos[1] && i === 2) {
+                            return {
+                                ...cell,
+                                figure: {
+                                    type: 'king',
+                                    color: currentFigure.color,
+                                    touched: true
+                                }
+                            }
+                        }
+
+                        if ((j === prevPos[1] && i === 0) || (j === prevPos[1] && i === prevPos[0])) {
+                            return {
+                                ...cell,
+                                figure: undefined
+                            }
+                        }
+
+                        return cell;
+                    }))
+
+                    return updatedCell;
+                }
+            }
+        }
+
         const updatedCells: Cell[][] = state.map((row, j) => row.map((cell, i) => {
+
             if (targetPos[0] === i && targetPos[1] === j) {
                 return {
                     figure: { 

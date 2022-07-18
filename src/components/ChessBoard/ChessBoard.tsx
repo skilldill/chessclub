@@ -89,7 +89,13 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         if (conditionForDoMove) {
             setCurrentColor((prevValue) => prevValue === 'black' ? 'white' : 'black');
 
-            setCellsState(GameServiceV2.changeState(cellsState, holdingFigure, pos, fromBoardPos!));
+            setCellsState(GameServiceV2.changeState(
+                cellsState, 
+                holdingFigure, 
+                pos, 
+                fromBoardPos!, 
+                !!reverse
+            ));
         }
         
         setHoldingFigure(undefined);
