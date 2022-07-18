@@ -85,14 +85,14 @@ export const INITIAL_CELLS: Cell[][] = [
 
 export const INITIAL_CELLS_TEST: Cell[][] = [
     [
-        { figure: { type: 'rook', color: 'black', touched: true } },
-        { figure: { type: 'king', color: 'black', touched: true } },
-        { figure: { type: 'knigts', color: 'black', touched: true } },
-        { figure: { type: 'queen', color: 'black', touched: true } },
-        { figure: { type: 'bishop', color: 'black', touched: true } },
+        { figure: { type: 'rook', color: 'black', touched: false } },
         { figure: undefined },
         { figure: undefined },
         { figure: undefined },
+        { figure: { type: 'king', color: 'black', touched: false } },
+        { figure: undefined },
+        { figure: undefined },
+        { figure: { type: 'rook', color: 'black', touched: false } },
     ],
     [
         { figure: undefined },
@@ -155,14 +155,14 @@ export const INITIAL_CELLS_TEST: Cell[][] = [
         { figure: undefined },
     ],
     [
+        { figure: { type: 'rook', color: 'white', touched: false } },
         { figure: undefined },
         { figure: undefined },
         { figure: undefined },
+        { figure: { type: 'king', color: 'white', touched: false } },
+        { figure: { type: 'queen', color: 'white', touched: false } },
         { figure: undefined },
-        { figure: undefined },
-        { figure: { type: 'rook', color: 'white', touched: true } },
-        { figure: { type: 'king', color: 'white', touched: true } },
-        { figure: undefined },
+        { figure: { type: 'rook', color: 'white', touched: false } },
     ],
 ]
 

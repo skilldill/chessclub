@@ -936,6 +936,88 @@ export class GameService {
     }
 
     /**
+     * Проверяет возможна ли рокеровка
+     * @param state состояние доски
+     * @param kingPos позиция короля
+     * @param reverse перевенута ли доска
+     */
+    static checkPossibleCastling = (
+        state: Cell[][], 
+        kingPos: number[],
+        castlingPath: number[][], 
+        reverse: boolean,
+    ) => {
+        // Если короля перемещали - рокеровка невозможна
+        if (!!state[kingPos[1]][kingPos[0]].figure && state[kingPos[1]][kingPos[0]].figure?.touched)
+            return false;
+
+        // Проверка на атакованы ли поля для рокеровки
+        // Если хоть одно поле кроме для рокеровки атаковано (кроме поля на котором ладья)
+        // и если атакован король
+        // то рокеровка невозможна
+        const allAttackedPositionsByEnemys = GameService.getAllAttckedPostionsByEnemys(state, kingPos, reverse);
+
+        const foundCheckKingPos = allAttackedPositionsByEnemys.find((attackedPos) => 
+            attackedPos[0] === kingPos[0] && attackedPos[1] === kingPos[1]
+        );
+
+        if (!!foundCheckKingPos)
+            return false;
+
+        console.log('step 2');
+
+        // Если ладью перемещали - рокеровка невозможна
+        // figurePos[1] - горизонталь на которой изначально находится короля
+        // на ней же должны находиться ладьи
+        const castlingPathWithoutRook = [...castlingPath];
+        const rookPos = castlingPathWithoutRook.pop();
+
+        if (!state[rookPos![1]][rookPos![0]].figure)
+            return false;
+
+        if (!!state[rookPos![1]][rookPos![0]].figure && state[rookPos![1]][rookPos![0]].figure?.touched)
+            return false;
+
+        console.log('step 3');
+        
+        // Если на пути рокеровки есть фигуры - рокеровка невохможна
+        const castlinPathWithFigures = castlingPathWithoutRook.filter((castlingPos) => 
+            GameService.hasFigure(state, castlingPos)
+        );
+
+        if (castlinPathWithFigures.length > 0)
+            return false;
+
+
+        console.log('step 4');
+
+        
+
+        let isPossibleCastling = true;
+
+        for (let i = 0; i < allAttackedPositionsByEnemys.length; i++) {
+            const attackedPos = allAttackedPositionsByEnemys[i];
+
+            for (let j = 0; j < castlingPathWithoutRook.length; j++) {
+                const castlingPos = castlingPathWithoutRook[j];
+
+                if (castlingPos[0] === attackedPos[0] && castlingPos[1] === attackedPos[1]) {
+                    console.log(castlingPos, attackedPos, castlingPathWithoutRook);
+                    isPossibleCastling = false;
+                    break;
+                }
+            }
+
+            if (!isPossibleCastling)
+                break;
+        }
+
+        console.log('step 5', isPossibleCastling);
+
+        return isPossibleCastling;
+    }
+
+    /**
      * Возвращает возможные ходы для короля
      * @param state состояние доски
      * @param figurePos позиция короля
@@ -955,13 +1037,16 @@ export class GameService {
             [figurePos[0] - 1, figurePos[1] - 1],
         ]
 
-        // TODO: добавить рокеровку
+        // Для короткой рокеровки
         const castlingMoves = [
-            // Для короткой рокеровки
+            [figurePos[0] + 1, figurePos[1]],
             [figurePos[0] + 2, figurePos[1]],
             [figurePos[0] + 3, figurePos[1]],
+        ];
 
-            // Для длинной рокеровки
+        // Для длинной рокеровки
+        const longCastlingMoves = [
+            [figurePos[0] - 1, figurePos[1]],
             [figurePos[0] - 2, figurePos[1]],
             [figurePos[0] - 3, figurePos[1]],
             [figurePos[0] - 4, figurePos[1]],
@@ -983,6 +1068,24 @@ export class GameService {
                 foundInAttacked === undefined && nextMoves.push(move);
             }
         });
+
+        console.log(GameService.checkPossibleCastling(state, figurePos, castlingMoves, reverse));
+        console.log(GameService.checkPossibleCastling(state, figurePos, longCastlingMoves, reverse));
+
+        // Проверка на возможность рокеровки
+        // 1. Король не перемещался
+        // 2. Ладьи не перемещались
+        // 3. Рокеровке не мешают фигуры
+        // 4. поля для рокеровки не атакованы
+        if (GameService.checkPossibleCastling(state, figurePos, castlingMoves, reverse)) {
+            console.log('possible castling');
+            castlingMoves.forEach((castlingPos) => nextMoves.push(castlingPos));
+        }
+
+        if (GameService.checkPossibleCastling(state, figurePos, longCastlingMoves, reverse)) {
+            console.log('possible long castling');
+            longCastlingMoves.forEach((castlingPos) => nextMoves.push(castlingPos));
+        }
 
         return nextMoves;
     }
