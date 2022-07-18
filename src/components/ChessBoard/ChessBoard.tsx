@@ -103,7 +103,7 @@ export const ChessBoard: FC<ChessBoardProps> = (props) => {
         setNextMovesPositions(undefined);
 
         document.body.style.cursor = 'initial';
-    }, [holdingFigure, fromBoardPos, nextMovesPositions, cellsState])
+    }, [holdingFigure, fromBoardPos, nextMovesPositions, cellsState, reverse])
 
     const handleMouseUpFigure = useCallback(() => {
         setHoldingFigure(undefined);
